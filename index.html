@@ -3,7 +3,8 @@
 <head>
 <meta charset="UTF-8">
 <title>Arlo's Chaos Hour</title>
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<meta name="description" content="Tiny human. Maximum mischief. A cozy chaos game — pull tails, pet Steven the cat, and dodge nap time.">
 <style>
   @import url('https://fonts.googleapis.com/css2?family=Fredoka:wght@400;500;600;700&display=swap');
 
@@ -11,46 +12,59 @@
     --wall: #FFF3D6;
     --floor: #BFE3F0;
     --rug: #8FD9B6;
+    --rug-dark: #6BC49C;
     --arlo: #FF6F59;
     --arlo-dark: #E0563F;
     --plum: #4A3B52;
     --coin: #FFC94A;
     --white: #FFFDF8;
     --wood: #C9A06B;
+    --wood-dark: #B08A57;
+    --steven: #E8973F;
+    --steven-dark: #C97A2E;
   }
 
-  * { box-sizing: border-box; }
+  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+
+  html, body {
+    overscroll-behavior: none;
+  }
 
   body {
     margin: 0;
     min-height: 100vh;
     background: linear-gradient(180deg, #FFE9B8 0%, #FFDCA8 100%);
-    font-family: 'Fredoka', sans-serif;
+    font-family: 'Fredoka', system-ui, sans-serif;
     color: var(--plum);
     display: flex;
     flex-direction: column;
     align-items: center;
-    padding: 20px 12px 40px;
+    padding: 16px 12px calc(24px + env(safe-area-inset-bottom, 0px));
+    -webkit-user-select: none;
+    user-select: none;
   }
 
   h1 {
-    font-size: 2.1rem;
+    font-size: clamp(1.5rem, 5vw, 2.1rem);
     font-weight: 700;
     margin: 4px 0 2px;
     letter-spacing: -0.5px;
+    text-align: center;
   }
   h1 span { color: var(--arlo-dark); }
 
   .subtitle {
-    font-size: 0.95rem;
+    font-size: 0.9rem;
     font-weight: 500;
     color: #7A6A82;
-    margin-bottom: 14px;
+    margin-bottom: 12px;
+    text-align: center;
+    padding: 0 8px;
   }
 
   .hud {
     display: flex;
-    gap: 14px;
+    gap: 10px;
     align-items: center;
     margin-bottom: 10px;
     flex-wrap: wrap;
@@ -61,17 +75,24 @@
     background: var(--white);
     border: 3px solid var(--plum);
     border-radius: 999px;
-    padding: 8px 18px;
+    padding: 7px 14px;
     font-weight: 600;
-    font-size: 1.05rem;
+    font-size: 0.95rem;
     box-shadow: 3px 3px 0 var(--plum);
     display: flex;
     align-items: center;
-    gap: 8px;
+    gap: 7px;
+    white-space: nowrap;
   }
 
+  .pill.button {
+    cursor: pointer;
+    touch-action: manipulation;
+  }
+  .pill.button:active { transform: translate(2px,2px); box-shadow: none; }
+
   .scream-meter {
-    width: 90px;
+    width: 70px;
     height: 14px;
     background: #eee;
     border: 2px solid var(--plum);
@@ -85,31 +106,39 @@
     transition: width 0.1s linear;
   }
 
+  .wrap {
+    position: relative;
+    width: 100%;
+    max-width: 900px;
+  }
+
   #gameCanvas {
     background: var(--floor);
     border: 5px solid var(--plum);
     border-radius: 18px;
     box-shadow: 6px 6px 0 var(--plum);
-    max-width: 100%;
+    width: 100%;
+    height: auto;
+    aspect-ratio: 900 / 580;
+    display: block;
     touch-action: none;
   }
 
   .controls-note {
     margin-top: 12px;
-    font-size: 0.85rem;
+    font-size: 0.82rem;
     color: #7A6A82;
     text-align: center;
     max-width: 620px;
     line-height: 1.5;
+    padding: 0 8px;
   }
   .controls-note b { color: var(--plum); }
-
-  .wrap { position: relative; }
 
   .overlay {
     position: absolute;
     inset: 0;
-    background: rgba(74,59,82,0.88);
+    background: rgba(74,59,82,0.92);
     border-radius: 14px;
     display: flex;
     flex-direction: column;
@@ -118,94 +147,209 @@
     color: var(--white);
     text-align: center;
     padding: 20px;
+    gap: 2px;
   }
-  .overlay h2 { font-size: 1.6rem; margin-bottom: 8px; }
-  .overlay p { font-size: 0.95rem; max-width: 380px; line-height: 1.6; margin: 4px 0; }
+  .overlay h2 { font-size: clamp(1.2rem, 5vw, 1.6rem); margin-bottom: 4px; }
+  .overlay p { font-size: 0.9rem; max-width: 380px; line-height: 1.55; margin: 3px 0; }
+  .overlay .big-stat { font-size: 2.2rem; font-weight: 700; color: var(--coin); margin: 6px 0 0; }
+  .overlay .sub-stat { font-size: 0.85rem; color: #D8CBE0; margin-bottom: 6px; }
   .overlay button {
-    margin-top: 16px;
+    margin-top: 14px;
     font-family: 'Fredoka', sans-serif;
     font-weight: 700;
-    font-size: 1.1rem;
+    font-size: 1.05rem;
     background: var(--arlo);
     color: white;
     border: 3px solid var(--plum);
     border-radius: 999px;
-    padding: 10px 28px;
+    padding: 10px 26px;
     cursor: pointer;
+    touch-action: manipulation;
     box-shadow: 3px 3px 0 var(--wall);
   }
   .overlay button:active { transform: translate(2px,2px); box-shadow: none; }
+  .overlay[hidden] { display: none; }
 
+  /* ---------- Mobile controls ---------- */
   .mobile-controls {
     display: none;
-    margin-top: 14px;
-    gap: 10px;
-    flex-wrap: wrap;
+    margin-top: 16px;
+    align-items: center;
     justify-content: center;
+    gap: 24px;
+    width: 100%;
   }
-  .mobile-controls button {
+
+  .dpad {
+    display: grid;
+    grid-template-columns: 52px 52px 52px;
+    grid-template-rows: 52px 52px 52px;
+    gap: 4px;
+  }
+  .dpad-btn {
     font-family: 'Fredoka', sans-serif;
     font-weight: 700;
-    font-size: 1rem;
+    font-size: 1.2rem;
     background: var(--white);
     border: 3px solid var(--plum);
     border-radius: 12px;
-    padding: 10px 16px;
-    box-shadow: 3px 3px 0 var(--plum);
     color: var(--plum);
+    box-shadow: 3px 3px 0 var(--plum);
+    touch-action: manipulation;
+    display: flex;
+    align-items: center;
+    justify-content: center;
   }
-  @media (max-width: 720px) {
+  .dpad-btn:active, .dpad-btn.pressed { transform: translate(2px,2px); box-shadow: none; background: #FFE9C9; }
+  .dpad-up { grid-column: 2; grid-row: 1; }
+  .dpad-left { grid-column: 1; grid-row: 2; }
+  .dpad-right { grid-column: 3; grid-row: 2; }
+  .dpad-down { grid-column: 2; grid-row: 3; }
+
+  .scream-btn {
+    font-family: 'Fredoka', sans-serif;
+    font-weight: 700;
+    font-size: 0.95rem;
+    line-height: 1.3;
+    background: var(--arlo);
+    color: white;
+    border: 3px solid var(--plum);
+    border-radius: 50%;
+    width: 92px;
+    height: 92px;
+    box-shadow: 3px 3px 0 var(--plum);
+    touch-action: manipulation;
+  }
+  .scream-btn:active, .scream-btn.pressed { transform: translate(2px,2px); box-shadow: none; }
+
+  @media (max-width: 720px), (pointer: coarse) {
     .mobile-controls { display: flex; }
+  }
+
+  @media (max-width: 380px) {
+    .dpad { grid-template-columns: 46px 46px 46px; grid-template-rows: 46px 46px 46px; }
+    .scream-btn { width: 80px; height: 80px; font-size: 0.85rem; }
+  }
+
+  .footer-note {
+    margin-top: 18px;
+    font-size: 0.72rem;
+    color: #9C8CA3;
+    text-align: center;
   }
 </style>
 </head>
 <body>
 
 <h1><span>Arlo's</span> Chaos Hour</h1>
-<div class="subtitle">tiny human. maximum mischief.</div>
+<div class="subtitle">tiny human. maximum mischief. 90 seconds before nap.</div>
 
 <div class="hud">
   <div class="pill">🪙 <span id="coinCount">0</span></div>
-  <div class="pill">😱 Scream <div class="scream-meter"><div class="scream-fill" id="screamFill"></div></div></div>
+  <div class="pill">⏱ <span id="timeLeft">1:30</span></div>
+  <div class="pill">😱 <div class="scream-meter"><div class="scream-fill" id="screamFill"></div></div></div>
+  <button class="pill button" id="pauseBtn" type="button" aria-label="Pause game">⏸</button>
 </div>
 
 <div class="wrap">
   <canvas id="gameCanvas" width="900" height="580"></canvas>
+
   <div class="overlay" id="startOverlay">
     <h2>Naptime is a lie. It's Chaos Hour.</h2>
-    <p>Move Arlo around the house with <b>arrow keys / WASD</b>.</p>
+    <p>Move Arlo around the house with <b>arrow keys / WASD</b>, or the on-screen pad on mobile.</p>
     <p>Pull the dogs' tails, raid the cabinet, splash the water bowl, wreck the laundry, and fling some food — everything drops a coin.</p>
+    <p>Say hi to <b>Steven the cat</b> too — he might purr, or he might not.</p>
     <p>When Mom or Dad get close, hit <b>SPACE</b> to unleash Arlo's superpower scream and send them dizzy!</p>
     <button id="startBtn">Let's go, Arlo</button>
+  </div>
+
+  <div class="overlay" id="endOverlay" hidden>
+    <h2 id="endTitle">Nap time!</h2>
+    <div class="big-stat"><span id="finalCoins">0</span> 🪙</div>
+    <div class="sub-stat" id="highScoreLine">Best: 0</div>
+    <p>Steven has already forgotten this happened.</p>
+    <button id="restartBtn">Go again</button>
+  </div>
+
+  <div class="overlay" id="pauseOverlay" hidden>
+    <h2>Paused</h2>
+    <p>Mom and Dad are frozen too. Take a breath.</p>
+    <button id="resumeBtn">Resume</button>
   </div>
 </div>
 
 <div class="controls-note">
-  <b>Move:</b> Arrow keys or WASD &nbsp;•&nbsp; <b>Scream:</b> Spacebar &nbsp;•&nbsp;
-  Meet <b>Maggie</b>, <b>Albus</b>, and <b>Bean</b> — pull a tail, get a coin. Nothing in this house is safe.
+  <b>Move:</b> Arrow keys or WASD &nbsp;•&nbsp; <b>Scream:</b> Spacebar &nbsp;•&nbsp; <b>Pause:</b> P
+  <br>Meet <b>Maggie</b>, <b>Albus</b>, <b>Bean</b>, and <b>Steven</b> — nothing in this house is safe.
 </div>
 
-<div class="mobile-controls">
-  <button id="btnUp">↑</button>
-  <button id="btnLeft">←</button>
-  <button id="btnDown">↓</button>
-  <button id="btnRight">→</button>
-  <button id="btnScream">😱 SCREAM</button>
+<div class="mobile-controls" id="mobileControls">
+  <div class="dpad" role="group" aria-label="Move Arlo">
+    <button class="dpad-btn dpad-up" id="btnUp" type="button" aria-label="Move up">▲</button>
+    <button class="dpad-btn dpad-left" id="btnLeft" type="button" aria-label="Move left">◀</button>
+    <button class="dpad-btn dpad-right" id="btnRight" type="button" aria-label="Move right">▶</button>
+    <button class="dpad-btn dpad-down" id="btnDown" type="button" aria-label="Move down">▼</button>
+  </div>
+  <button class="scream-btn" id="btnScream" type="button" aria-label="Scream">😱<br>SCREAM</button>
 </div>
+
+<div class="footer-note">Works offline once loaded • No accounts, no ads, no tracking</div>
 
 <script>
 (function() {
+  'use strict';
+
+  // ---------- Setup & DOM ----------
   const canvas = document.getElementById('gameCanvas');
   const ctx = canvas.getContext('2d');
-  const W = canvas.width, H = canvas.height;
+  const GAME_W = 900, GAME_H = 580;
+  const W = GAME_W, H = GAME_H;
+
   const coinCountEl = document.getElementById('coinCount');
+  const timeLeftEl = document.getElementById('timeLeft');
   const screamFillEl = document.getElementById('screamFill');
   const startOverlay = document.getElementById('startOverlay');
+  const endOverlay = document.getElementById('endOverlay');
+  const pauseOverlay = document.getElementById('pauseOverlay');
   const startBtn = document.getElementById('startBtn');
+  const restartBtn = document.getElementById('restartBtn');
+  const resumeBtn = document.getElementById('resumeBtn');
+  const pauseBtn = document.getElementById('pauseBtn');
+  const finalCoinsEl = document.getElementById('finalCoins');
+  const highScoreLineEl = document.getElementById('highScoreLine');
+  const endTitleEl = document.getElementById('endTitle');
+
+  const CHAOS_DURATION = 90; // seconds
 
   let started = false;
+  let paused = false;
+  let gameOver = false;
   let coins = 0;
+  let timeLeft = CHAOS_DURATION;
   let lastTime = 0;
+  let rafId = null;
+
+  // ---------- Safe storage (private browsing / disabled storage won't crash) ----------
+  function loadHighScore() {
+    try {
+      return parseInt(localStorage.getItem('arloChaosHighScore') || '0', 10) || 0;
+    } catch (e) { return 0; }
+  }
+  function saveHighScore(v) {
+    try { localStorage.setItem('arloChaosHighScore', String(v)); } catch (e) { /* ignore */ }
+  }
+  let highScore = loadHighScore();
+
+  // ---------- Canvas scaling (crisp on retina/mobile, responsive by CSS) ----------
+  function fitCanvas() {
+    const dpr = Math.min(window.devicePixelRatio || 1, 2);
+    canvas.width = Math.round(GAME_W * dpr);
+    canvas.height = Math.round(GAME_H * dpr);
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  }
+  fitCanvas();
+  window.addEventListener('resize', fitCanvas);
+  window.addEventListener('orientationchange', fitCanvas);
 
   // ---------- Input ----------
   const keys = {};
@@ -213,33 +357,100 @@
     if (['ArrowUp','ArrowDown','ArrowLeft','ArrowRight',' '].includes(e.key)) e.preventDefault();
     keys[e.key.toLowerCase()] = true;
     if (e.key === ' ') tryScream();
+    if (e.key.toLowerCase() === 'p') togglePause();
   });
   window.addEventListener('keyup', e => { keys[e.key.toLowerCase()] = false; });
 
+  // Unified pointer-based binding (avoids duplicate touch+mouse firing and the 300ms delay)
   function bindHold(id, key) {
     const el = document.getElementById(id);
     if (!el) return;
-    const down = ev => { ev.preventDefault(); keys[key] = true; };
-    const up = ev => { ev.preventDefault(); keys[key] = false; };
-    el.addEventListener('touchstart', down);
-    el.addEventListener('touchend', up);
-    el.addEventListener('mousedown', down);
-    el.addEventListener('mouseup', up);
-    el.addEventListener('mouseleave', up);
+    let activePointer = null;
+    const down = ev => {
+      ev.preventDefault();
+      if (activePointer !== null) return;
+      activePointer = ev.pointerId;
+      try { el.setPointerCapture(ev.pointerId); } catch (e) {}
+      keys[key] = true;
+      el.classList.add('pressed');
+    };
+    const up = ev => {
+      if (activePointer !== null && ev.pointerId !== activePointer) return;
+      activePointer = null;
+      keys[key] = false;
+      el.classList.remove('pressed');
+    };
+    el.addEventListener('pointerdown', down);
+    el.addEventListener('pointerup', up);
+    el.addEventListener('pointercancel', up);
+    el.addEventListener('pointerleave', up);
+    el.addEventListener('contextmenu', ev => ev.preventDefault());
   }
   bindHold('btnUp', 'arrowup');
   bindHold('btnDown', 'arrowdown');
   bindHold('btnLeft', 'arrowleft');
   bindHold('btnRight', 'arrowright');
-  document.getElementById('btnScream').addEventListener('touchstart', e => { e.preventDefault(); tryScream(); });
-  document.getElementById('btnScream').addEventListener('click', () => tryScream());
+
+  const screamBtn = document.getElementById('btnScream');
+  screamBtn.addEventListener('pointerdown', ev => { ev.preventDefault(); tryScream(); });
+  screamBtn.addEventListener('contextmenu', ev => ev.preventDefault());
+
+  // ---------- Game lifecycle ----------
+  function startLoopIfNeeded() {
+    if (rafId !== null) return;
+    lastTime = performance.now();
+    rafId = requestAnimationFrame(loop);
+  }
 
   startBtn.addEventListener('click', () => {
     started = true;
+    gameOver = false;
+    paused = false;
+    startOverlay.hidden = false;
     startOverlay.style.display = 'none';
-    lastTime = performance.now();
-    requestAnimationFrame(loop);
+    startLoopIfNeeded();
   });
+
+  restartBtn.addEventListener('click', () => {
+    resetGame();
+    endOverlay.hidden = true;
+    started = true;
+    gameOver = false;
+    paused = false;
+    startLoopIfNeeded();
+  });
+
+  function togglePause() {
+    if (!started || gameOver) return;
+    paused = !paused;
+    pauseOverlay.hidden = !paused;
+    pauseBtn.textContent = paused ? '▶' : '⏸';
+    if (!paused) lastTime = performance.now();
+  }
+  pauseBtn.addEventListener('click', togglePause);
+  resumeBtn.addEventListener('click', togglePause);
+
+  // Auto-pause when the tab/app loses focus, so parents don't teleport on return
+  document.addEventListener('visibilitychange', () => {
+    if (document.hidden && started && !gameOver && !paused) togglePause();
+  });
+  window.addEventListener('blur', () => {
+    if (started && !gameOver && !paused) togglePause();
+  });
+
+  function endGame() {
+    gameOver = true;
+    if (coins > highScore) {
+      highScore = coins;
+      saveHighScore(highScore);
+      endTitleEl.textContent = 'New high score!';
+    } else {
+      endTitleEl.textContent = 'Nap time!';
+    }
+    finalCoinsEl.textContent = coins;
+    highScoreLineEl.textContent = 'Best: ' + highScore;
+    endOverlay.hidden = false;
+  }
 
   // ---------- World ----------
   const rooms = {
@@ -248,37 +459,75 @@
     play:     { x: 20,  y: 320, w: 860, h: 240, color: '#D9F0FA', label: 'Playroom' }
   };
 
+  const initialPlayer = { x: 450, y: 450, w: 34, h: 40, speed: 190, dir: 'down' };
+
   // ---------- Player: Arlo ----------
-  const player = {
-    x: 450, y: 450, w: 34, h: 40,
-    speed: 190,
-    dir: 'down',
-    caught: false,
-    caughtTimer: 0,
-    screamCooldown: 0,
-    screamMax: 3.5,
-    bob: 0
-  };
+  let player = makePlayer();
+  function makePlayer() {
+    return {
+      x: initialPlayer.x, y: initialPlayer.y, w: initialPlayer.w, h: initialPlayer.h,
+      speed: initialPlayer.speed,
+      dir: 'down',
+      caught: false,
+      caughtTimer: 0,
+      screamCooldown: 0,
+      screamMax: 3.5,
+      bob: 0
+    };
+  }
 
   // ---------- Dogs ----------
-  const dogs = [
-    { name: 'Maggie', color: '#C98A4B', x: 150, y: 150, r: 16, vx: 0, vy: 0, wanderT: 0, cooldown: 0, flee: 0, yelp: 0 },
-    { name: 'Albus',  color: '#EDEDED', x: 650, y: 120, r: 15, vx: 0, vy: 0, wanderT: 0, cooldown: 0, flee: 0, yelp: 0 },
-    { name: 'Bean',   color: '#5A4632', x: 300, y: 420, r: 14, vx: 0, vy: 0, wanderT: 0, cooldown: 0, flee: 0, yelp: 0 }
+  const dogStart = [
+    { name: 'Maggie', color: '#C98A4B', x: 150, y: 150 },
+    { name: 'Albus',  color: '#EDEDED', x: 650, y: 120 },
+    { name: 'Bean',   color: '#5A4632', x: 300, y: 420 }
   ];
+  let dogs = makeDogs();
+  function makeDogs() {
+    return dogStart.map(d => ({
+      name: d.name, color: d.color, x: d.x, y: d.y, r: 16,
+      vx: 0, vy: 0, wanderT: 0, cooldown: 0, flee: 0, yelp: 0
+    }));
+  }
+
+  // ---------- Steven the cat ----------
+  const catStart = { x: 340, y: 190 };
+  let cat = makeCat();
+  function makeCat() {
+    return {
+      name: 'Steven', x: catStart.x, y: catStart.y, r: 15,
+      vx: 0, vy: 0, wanderT: 1.5, cooldown: 0, flee: 0,
+      mood: 0,          // >0 = purring/happy animation
+      hiss: 0,           // >0 = hiss/swipe animation
+      tailT: 0,          // tail-flick timer (ambient idle animation)
+      swatCooldown: 6 + Math.random() * 6 // ambient "knocks something off the table" event
+    };
+  }
 
   // ---------- Parents ----------
-  const parents = [
-    { name: 'Mom', color: '#D46A8F', x: 700, y: 450, speed: 130, state: 'wander', wanderT: 0, dizzy: 0, chaseGrace: 0, vx:0, vy:0 },
-    { name: 'Dad', color: '#4E7FB5', x: 100, y: 480, speed: 135, state: 'wander', wanderT: 0, dizzy: 0, chaseGrace: 0, vx:0, vy:0 }
+  const parentStart = [
+    { name: 'Mom', color: '#D46A8F', x: 700, y: 450, speed: 130 },
+    { name: 'Dad', color: '#4E7FB5', x: 100, y: 480, speed: 135 }
   ];
+  let parents = makeParents();
+  function makeParents() {
+    return parentStart.map(p => ({
+      name: p.name, color: p.color, x: p.x, y: p.y, speed: p.speed,
+      state: 'wander', wanderT: 0, dizzy: 0, chaseGrace: 0, vx: 0, vy: 0
+    }));
+  }
 
   // ---------- Interactables ----------
-  const cabinet = { x: 60, y: 40, w: 110, h: 70, cooldown: 0, openT: 0 };
-  const waterBowl = { x: 130, y: 250, r: 26, cooldown: 0, splashT: 0 };
-  const laundry = { x: 150, y: 400, w: 70, h: 55, cooldown: 0, messT: 0 };
-  const foodBowl = { x: 330, y: 90, r: 20, cooldown: 0, throwT: 0 };
-  const table = { x: 300, y: 150, w: 110, h: 60 };
+  function makeInteractables() {
+    return {
+      cabinet: { x: 60, y: 40, w: 110, h: 70, cooldown: 0, openT: 0 },
+      waterBowl: { x: 130, y: 250, r: 26, cooldown: 0, splashT: 0 },
+      laundry: { x: 150, y: 400, w: 70, h: 55, cooldown: 0, messT: 0 },
+      foodBowl: { x: 330, y: 90, r: 20, cooldown: 0, throwT: 0 },
+      table: { x: 300, y: 150, w: 110, h: 60 }
+    };
+  }
+  let { cabinet, waterBowl, laundry, foodBowl, table } = makeInteractables();
 
   // ---------- Particles / effects ----------
   let particles = [];
@@ -296,11 +545,38 @@
     toasts.push({ text, x, y, life: 1.2, maxLife: 1.2, color: color || '#4A3B52' });
   }
 
+  function addCoins(n, x, y) {
+    coins = Math.max(0, coins + n);
+    coinCountEl.textContent = coins;
+    if (n > 0) spawnCoin(x, y);
+  }
+
   function dist(x1,y1,x2,y2){ return Math.hypot(x1-x2, y1-y2); }
+
+  function resetGame() {
+    coins = 0;
+    coinCountEl.textContent = '0';
+    timeLeft = CHAOS_DURATION;
+    updateTimerDisplay();
+    player = makePlayer();
+    dogs = makeDogs();
+    cat = makeCat();
+    parents = makeParents();
+    ({ cabinet, waterBowl, laundry, foodBowl, table } = makeInteractables());
+    particles = []; flyingCoins = []; toasts = []; screamRings = [];
+  }
+
+  function updateTimerDisplay() {
+    const t = Math.max(0, Math.ceil(timeLeft));
+    const m = Math.floor(t / 60);
+    const s = t % 60;
+    timeLeftEl.textContent = m + ':' + String(s).padStart(2, '0');
+  }
+  updateTimerDisplay();
 
   // ---------- Scream ----------
   function tryScream() {
-    if (!started) return;
+    if (!started || paused || gameOver) return;
     if (player.screamCooldown > 0) return;
     player.screamCooldown = player.screamMax;
     const cx = player.x + player.w/2, cy = player.y + player.h/2;
@@ -310,9 +586,21 @@
 
   // ---------- Update ----------
   function update(dt) {
+    if (!started || paused) return;
+
+    if (!gameOver) {
+      timeLeft -= dt;
+      updateTimerDisplay();
+      if (timeLeft <= 0) {
+        timeLeft = 0;
+        updateTimerDisplay();
+        endGame();
+      }
+    }
+
     // Player movement
     let mvx = 0, mvy = 0;
-    if (!player.caught) {
+    if (!player.caught && !gameOver) {
       if (keys['arrowleft'] || keys['a']) { mvx -= 1; player.dir = 'left'; }
       if (keys['arrowright'] || keys['d']) { mvx += 1; player.dir = 'right'; }
       if (keys['arrowup'] || keys['w']) { mvy -= 1; player.dir = 'up'; }
@@ -334,9 +622,7 @@
     }
 
     // Scream rings
-    screamRings.forEach(ring => {
-      ring.r += dt * 700;
-    });
+    screamRings.forEach(ring => { ring.r += dt * 700; });
     screamRings = screamRings.filter(r => r.r < r.maxR);
 
     // Dogs
@@ -362,28 +648,27 @@
       dog.x = Math.max(30, Math.min(W - 30, dog.x));
       dog.y = Math.max(30, Math.min(H - 30, dog.y));
 
-      // Tail pull check
       const pcx = player.x + player.w/2, pcy = player.y + player.h/2;
-      if (dog.cooldown <= 0 && dist(pcx, pcy, dog.x, dog.y) < dog.r + 22) {
+      if (!gameOver && dog.cooldown <= 0 && dist(pcx, pcy, dog.x, dog.y) < dog.r + 22) {
         dog.cooldown = 4;
         dog.yelp = 0.8;
         dog.flee = 0.6;
         const ang = Math.atan2(dog.y - pcy, dog.x - pcx);
         dog.vx = Math.cos(ang) * 160;
         dog.vy = Math.sin(ang) * 160;
-        coins += 1;
-        coinCountEl.textContent = coins;
-        spawnCoin(dog.x, dog.y - 10);
+        addCoins(1, dog.x, dog.y - 10);
         toast('Pulled ' + dog.name + "'s tail!", dog.x, dog.y - 30, '#C98A4B');
       }
     });
+
+    // Steven the cat
+    updateCat(dt);
 
     // Parents
     parents.forEach(par => {
       if (par.dizzy > 0) {
         par.dizzy -= dt;
       } else {
-        // check scream hit
         screamRings.forEach(ring => {
           const d = dist(ring.x, ring.y, par.x, par.y);
           if (!ring.hit.has(par) && Math.abs(d - ring.r) < 26) {
@@ -401,13 +686,13 @@
         const pcx = player.x + player.w/2, pcy = player.y + player.h/2;
         const d = dist(pcx, pcy, par.x, par.y);
 
-        if (par.chaseGrace <= 0 && d < 190 && !player.caught) {
+        if (!gameOver && par.chaseGrace <= 0 && d < 190 && !player.caught) {
           par.state = 'chase';
-        } else if (d > 260) {
+        } else if (d > 260 || gameOver) {
           par.state = 'wander';
         }
 
-        if (par.state === 'chase') {
+        if (par.state === 'chase' && !gameOver) {
           const ang = Math.atan2(pcy - par.y, pcx - par.x);
           par.x += Math.cos(ang) * par.speed * dt;
           par.y += Math.sin(ang) * par.speed * dt;
@@ -415,8 +700,7 @@
           if (d < 26 && !player.caught) {
             player.caught = true;
             player.caughtTimer = 1.4;
-            coins = Math.max(0, coins - 1);
-            coinCountEl.textContent = coins;
+            addCoins(-1, par.x, par.y);
             par.chaseGrace = 2;
             toast(par.name + ': Gotcha!', par.x, par.y - 30, '#D46A8F');
           }
@@ -439,7 +723,7 @@
     // Cabinet
     if (cabinet.cooldown > 0) cabinet.cooldown -= dt;
     if (cabinet.openT > 0) cabinet.openT -= dt;
-    if (cabinet.cooldown <= 0 && rectHit(player, cabinet)) {
+    if (!gameOver && cabinet.cooldown <= 0 && rectHit(player, cabinet)) {
       cabinet.cooldown = 6;
       cabinet.openT = 1.6;
       for (let i = 0; i < 5; i++) {
@@ -452,15 +736,14 @@
           rot: Math.random()*Math.PI, rotSpeed: (Math.random()-0.5)*8
         });
       }
-      coins += 1; coinCountEl.textContent = coins;
-      spawnCoin(cabinet.x + cabinet.w/2, cabinet.y + cabinet.h);
+      addCoins(1, cabinet.x + cabinet.w/2, cabinet.y + cabinet.h);
       toast('CLANG! CLANG!', cabinet.x + cabinet.w/2, cabinet.y - 10, '#8C949B');
     }
 
     // Water bowl
     if (waterBowl.cooldown > 0) waterBowl.cooldown -= dt;
     if (waterBowl.splashT > 0) waterBowl.splashT -= dt;
-    if (waterBowl.cooldown <= 0 && dist(player.x+player.w/2, player.y+player.h/2, waterBowl.x, waterBowl.y) < waterBowl.r + 22) {
+    if (!gameOver && waterBowl.cooldown <= 0 && dist(player.x+player.w/2, player.y+player.h/2, waterBowl.x, waterBowl.y) < waterBowl.r + 22) {
       waterBowl.cooldown = 4;
       waterBowl.splashT = 0.8;
       for (let i = 0; i < 8; i++) {
@@ -472,15 +755,14 @@
           shape: 'drop', maxLife: 0.7, life: 0.7
         });
       }
-      coins += 1; coinCountEl.textContent = coins;
-      spawnCoin(waterBowl.x, waterBowl.y);
+      addCoins(1, waterBowl.x, waterBowl.y);
       toast('SPLASH!', waterBowl.x, waterBowl.y - 30, '#3E9AC7');
     }
 
     // Laundry
     if (laundry.cooldown > 0) laundry.cooldown -= dt;
     if (laundry.messT > 0) laundry.messT -= dt;
-    if (laundry.cooldown <= 0 && rectHit(player, laundry)) {
+    if (!gameOver && laundry.cooldown <= 0 && rectHit(player, laundry)) {
       laundry.cooldown = 6;
       laundry.messT = 5;
       const cols = ['#F2A6B0','#9AD1D4','#F4D06F','#B9A6DC'];
@@ -493,15 +775,14 @@
           rot: Math.random()*Math.PI, rotSpeed: (Math.random()-0.5)*6
         });
       }
-      coins += 1; coinCountEl.textContent = coins;
-      spawnCoin(laundry.x + laundry.w/2, laundry.y);
+      addCoins(1, laundry.x + laundry.w/2, laundry.y);
       toast('WHEEE! Laundry everywhere!', laundry.x + laundry.w/2, laundry.y - 10, '#B9A6DC');
     }
 
     // Food
     if (foodBowl.cooldown > 0) foodBowl.cooldown -= dt;
     if (foodBowl.throwT > 0) foodBowl.throwT -= dt;
-    if (foodBowl.cooldown <= 0 && dist(player.x+player.w/2, player.y+player.h/2, foodBowl.x, foodBowl.y) < foodBowl.r + 24) {
+    if (!gameOver && foodBowl.cooldown <= 0 && dist(player.x+player.w/2, player.y+player.h/2, foodBowl.x, foodBowl.y) < foodBowl.r + 24) {
       foodBowl.cooldown = 5;
       foodBowl.throwT = 0.6;
       const ang = Math.random()*Math.PI*2;
@@ -511,8 +792,7 @@
         gravity: 500, size: 9, color: '#E8973F',
         shape: 'food', maxLife: 1, life: 1
       });
-      coins += 1; coinCountEl.textContent = coins;
-      spawnCoin(foodBowl.x, foodBowl.y);
+      addCoins(1, foodBowl.x, foodBowl.y);
       toast('SPLAT!', foodBowl.x, foodBowl.y - 25, '#E8973F');
     }
 
@@ -541,6 +821,84 @@
     toasts = toasts.filter(t => t.life > 0);
   }
 
+  function updateCat(dt) {
+    if (cat.cooldown > 0) cat.cooldown -= dt;
+    if (cat.mood > 0) cat.mood -= dt;
+    if (cat.hiss > 0) cat.hiss -= dt;
+    cat.tailT += dt;
+
+    if (cat.flee > 0) {
+      cat.flee -= dt;
+      cat.x += cat.vx * dt;
+      cat.y += cat.vy * dt;
+    } else {
+      cat.wanderT -= dt;
+      if (cat.wanderT <= 0) {
+        // cats saunter, they don't hurry
+        const ang = Math.random() * Math.PI * 2;
+        cat.vx = Math.cos(ang) * 22;
+        cat.vy = Math.sin(ang) * 22;
+        cat.wanderT = 2 + Math.random() * 2.5;
+      }
+      cat.x += cat.vx * dt;
+      cat.y += cat.vy * dt;
+    }
+    cat.x = Math.max(30, Math.min(W - 30, cat.x));
+    cat.y = Math.max(30, Math.min(H - 30, cat.y));
+
+    // Petting interaction
+    if (!gameOver) {
+      const pcx = player.x + player.w/2, pcy = player.y + player.h/2;
+      if (cat.cooldown <= 0 && dist(pcx, pcy, cat.x, cat.y) < cat.r + 22) {
+        cat.cooldown = 3.5;
+        if (Math.random() < 0.78) {
+          // purr
+          cat.mood = 1;
+          addCoins(1, cat.x, cat.y - 10);
+          toast('Steven purrs. ' + '♥'.repeat(1), cat.x, cat.y - 30, '#E8973F');
+          for (let i = 0; i < 4; i++) {
+            spawnParticle({
+              x: cat.x, y: cat.y - 10,
+              vx: (Math.random()-0.5)*30, vy: -30 - Math.random()*20,
+              gravity: -10, size: 6, color: '#F2A6B0',
+              shape: 'drop', maxLife: 0.8, life: 0.8
+            });
+          }
+        } else {
+          // hiss
+          cat.hiss = 0.6;
+          cat.flee = 0.5;
+          const ang = Math.atan2(cat.y - pcy, cat.x - pcx);
+          cat.vx = Math.cos(ang) * 140;
+          cat.vy = Math.sin(ang) * 140;
+          player.caught = true;
+          player.caughtTimer = 0.5;
+          toast('HISS! Steven is not a toy.', cat.x, cat.y - 30, '#8B5FBF');
+        }
+      }
+    }
+
+    // Ambient chaos: every so often Steven knocks something off the table by himself
+    if (!gameOver) {
+      cat.swatCooldown -= dt;
+      if (cat.swatCooldown <= 0) {
+        cat.swatCooldown = 12 + Math.random() * 10;
+        const tx = table.x + table.w/2, ty = table.y - 6;
+        addCoins(1, tx, ty);
+        toast('Steven knocked something off the table!', tx, table.y - 14, '#8C949B');
+        for (let i = 0; i < 4; i++) {
+          spawnParticle({
+            x: tx, y: ty,
+            vx: (Math.random()-0.5)*140, vy: -60 - Math.random()*60,
+            gravity: 420, size: 6 + Math.random()*4, color: '#D5DADD',
+            shape: 'pan', maxLife: 1, life: 1,
+            rot: Math.random()*Math.PI, rotSpeed: (Math.random()-0.5)*6
+          });
+        }
+      }
+    }
+  }
+
   function rectHit(a, b) {
     return a.x < b.x + b.w && a.x + a.w > b.x && a.y < b.y + b.h && a.y + a.h > b.y;
   }
@@ -557,6 +915,42 @@
     ctx.fillText(r.label, r.x + 10, r.y + 18);
   }
 
+  function drawRug() {
+    ctx.save();
+    ctx.fillStyle = getCss('--rug');
+    ctx.beginPath();
+    ctx.ellipse(650, 190, 130, 78, 0, 0, Math.PI*2);
+    ctx.fill();
+    ctx.strokeStyle = getCss('--rug-dark');
+    ctx.lineWidth = 4;
+    ctx.beginPath();
+    ctx.ellipse(650, 190, 108, 60, 0, 0, Math.PI*2);
+    ctx.stroke();
+    ctx.restore();
+  }
+
+  function drawFloorPlanks() {
+    ctx.save();
+    ctx.strokeStyle = 'rgba(201,160,107,0.18)';
+    ctx.lineWidth = 2;
+    for (let x = rooms.play.x + 40; x < rooms.play.x + rooms.play.w; x += 60) {
+      ctx.beginPath();
+      ctx.moveTo(x, rooms.play.y + 6);
+      ctx.lineTo(x, rooms.play.y + rooms.play.h - 6);
+      ctx.stroke();
+    }
+    ctx.restore();
+  }
+
+  function drawShadow(x, y, rx, ry) {
+    ctx.save();
+    ctx.fillStyle = 'rgba(74,59,82,0.16)';
+    ctx.beginPath();
+    ctx.ellipse(x, y, rx, ry, 0, 0, Math.PI*2);
+    ctx.fill();
+    ctx.restore();
+  }
+
   function drawCabinet() {
     ctx.save();
     ctx.fillStyle = '#C9A06B';
@@ -565,7 +959,6 @@
     ctx.lineWidth = 3;
     ctx.strokeRect(cabinet.x, cabinet.y, cabinet.w, cabinet.h);
     const openAmt = cabinet.openT > 0 ? Math.min(1, cabinet.openT / 1.6) : 0;
-    // door
     ctx.save();
     ctx.translate(cabinet.x + 6, cabinet.y + 6);
     ctx.rotate(-openAmt * 1.1);
@@ -636,6 +1029,7 @@
   }
 
   function drawTable() {
+    drawShadow(table.x + table.w/2, table.y + table.h + 6, table.w*0.5, 8);
     ctx.fillStyle = '#DCB77E';
     ctx.fillRect(table.x, table.y, table.w, table.h);
     ctx.strokeStyle = '#B99257';
@@ -644,24 +1038,21 @@
   }
 
   function drawDog(dog) {
+    drawShadow(dog.x, dog.y + dog.r*0.75 + 4, dog.r*0.9, dog.r*0.3);
     ctx.save();
     const bounce = dog.yelp > 0 ? Math.sin(dog.yelp * 40) * 4 : 0;
     ctx.translate(dog.x, dog.y + bounce);
-    // body
     ctx.fillStyle = dog.color;
     ctx.beginPath();
     ctx.ellipse(0, 0, dog.r, dog.r*0.75, 0, 0, Math.PI*2);
     ctx.fill();
-    // head
     ctx.beginPath();
     ctx.arc(dog.r*0.75, -dog.r*0.3, dog.r*0.55, 0, Math.PI*2);
     ctx.fill();
-    // ear
     ctx.fillStyle = 'rgba(0,0,0,0.15)';
     ctx.beginPath();
     ctx.ellipse(dog.r*0.9, -dog.r*0.7, 5, 8, 0.4, 0, Math.PI*2);
     ctx.fill();
-    // tail
     ctx.strokeStyle = dog.color;
     ctx.lineWidth = 5;
     ctx.beginPath();
@@ -683,7 +1074,97 @@
     ctx.textAlign = 'left';
   }
 
+  function drawCat() {
+    drawShadow(cat.x, cat.y + cat.r*0.7 + 4, cat.r*0.9, cat.r*0.3);
+    ctx.save();
+    const bounce = cat.hiss > 0 ? Math.sin(cat.hiss * 50) * 3 : 0;
+    ctx.translate(cat.x, cat.y + bounce);
+
+    // tail (flicks gently when idle)
+    const tailWag = Math.sin(cat.tailT * 2.2) * 0.35;
+    ctx.strokeStyle = getCss('--steven');
+    ctx.lineWidth = 5;
+    ctx.lineCap = 'round';
+    ctx.beginPath();
+    ctx.moveTo(-cat.r*0.85, 2);
+    ctx.quadraticCurveTo(-cat.r*1.7, -cat.r*0.4 + tailWag*10, -cat.r*1.5, -cat.r*1.3 + tailWag*6);
+    ctx.stroke();
+
+    // body
+    ctx.fillStyle = getCss('--steven');
+    ctx.beginPath();
+    ctx.ellipse(0, 0, cat.r, cat.r*0.7, 0, 0, Math.PI*2);
+    ctx.fill();
+
+    // stripes
+    ctx.strokeStyle = getCss('--steven-dark');
+    ctx.lineWidth = 3;
+    for (let i = -1; i <= 1; i++) {
+      ctx.beginPath();
+      ctx.moveTo(i*5, -cat.r*0.5);
+      ctx.lineTo(i*5, cat.r*0.4);
+      ctx.stroke();
+    }
+
+    // head
+    ctx.fillStyle = getCss('--steven');
+    ctx.beginPath();
+    ctx.arc(cat.r*0.7, -cat.r*0.35, cat.r*0.55, 0, Math.PI*2);
+    ctx.fill();
+
+    // ears
+    ctx.beginPath();
+    ctx.moveTo(cat.r*0.35, -cat.r*0.7);
+    ctx.lineTo(cat.r*0.5, -cat.r*1.25);
+    ctx.lineTo(cat.r*0.75, -cat.r*0.75);
+    ctx.closePath();
+    ctx.fill();
+    ctx.beginPath();
+    ctx.moveTo(cat.r*0.85, -cat.r*0.7);
+    ctx.lineTo(cat.r*1.05, -cat.r*1.2);
+    ctx.lineTo(cat.r*1.2, -cat.r*0.65);
+    ctx.closePath();
+    ctx.fill();
+
+    // face
+    ctx.fillStyle = '#4A3B52';
+    if (cat.mood > 0) {
+      // happy closed eyes ^ ^
+      ctx.lineWidth = 2;
+      ctx.strokeStyle = '#4A3B52';
+      ctx.beginPath(); ctx.arc(cat.r*0.55, -cat.r*0.4, 3, Math.PI, Math.PI*2); ctx.stroke();
+      ctx.beginPath(); ctx.arc(cat.r*0.9, -cat.r*0.4, 3, Math.PI, Math.PI*2); ctx.stroke();
+    } else if (cat.hiss > 0) {
+      // angry eyes
+      ctx.beginPath(); ctx.moveTo(cat.r*0.45,-cat.r*0.55); ctx.lineTo(cat.r*0.65,-cat.r*0.4); ctx.lineWidth=2; ctx.strokeStyle='#4A3B52'; ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(cat.r*1.0,-cat.r*0.55); ctx.lineTo(cat.r*0.8,-cat.r*0.4); ctx.stroke();
+    } else {
+      ctx.beginPath(); ctx.arc(cat.r*0.55, -cat.r*0.35, 1.6, 0, Math.PI*2); ctx.fill();
+      ctx.beginPath(); ctx.arc(cat.r*0.9, -cat.r*0.35, 1.6, 0, Math.PI*2); ctx.fill();
+    }
+
+    ctx.restore();
+
+    if (cat.mood > 0) {
+      ctx.fillStyle = '#E0563F';
+      ctx.font = '13px Fredoka';
+      ctx.fillText('♥', cat.x + cat.r + 6, cat.y - cat.r - 8);
+    }
+    if (cat.hiss > 0) {
+      ctx.fillStyle = 'rgba(74,59,82,0.9)';
+      ctx.font = '600 12px Fredoka';
+      ctx.fillText('hiss!', cat.x + 10, cat.y - 26);
+    }
+
+    ctx.fillStyle = '#4A3B52';
+    ctx.font = '600 11px Fredoka';
+    ctx.textAlign = 'center';
+    ctx.fillText('Steven', cat.x, cat.y + cat.r + 14);
+    ctx.textAlign = 'left';
+  }
+
   function drawParent(par) {
+    drawShadow(par.x, par.y + 24, 16, 6);
     ctx.save();
     let wobble = 0;
     if (par.dizzy > 0) wobble = Math.sin(performance.now()/60) * 6;
@@ -714,6 +1195,7 @@
   }
 
   function drawPlayer() {
+    drawShadow(player.x + player.w/2, player.y + player.h + 6, 16, 5);
     ctx.save();
     const bounce = (keys['arrowleft']||keys['arrowright']||keys['arrowup']||keys['arrowdown']||keys['w']||keys['a']||keys['s']||keys['d']) ? Math.sin(player.bob) * 3 : 0;
     const cx = player.x + player.w/2, cy = player.y + player.h/2 + bounce;
@@ -722,30 +1204,25 @@
       ctx.globalAlpha = 0.6;
     }
 
-    // legs
-    ctx.fillStyle = var_arlo_dark();
+    ctx.fillStyle = getCss('--arlo-dark');
     ctx.fillRect(cx - 10, cy + 8, 8, 12);
     ctx.fillRect(cx + 2, cy + 8, 8, 12);
 
-    // body
     ctx.fillStyle = getCss('--arlo');
     ctx.beginPath();
     ctx.ellipse(cx, cy, 15, 16, 0, 0, Math.PI*2);
     ctx.fill();
 
-    // head
     ctx.fillStyle = '#F6CDA0';
     ctx.beginPath();
     ctx.arc(cx, cy - 20, 13, 0, Math.PI*2);
     ctx.fill();
 
-    // hair
     ctx.fillStyle = '#6B4A34';
     ctx.beginPath();
     ctx.arc(cx, cy - 27, 11, Math.PI, 0);
     ctx.fill();
 
-    // face direction cue (simple eyes)
     ctx.fillStyle = '#4A3B52';
     let ex = 0;
     if (player.dir === 'left') ex = -4;
@@ -768,7 +1245,6 @@
     ctx.textAlign = 'left';
   }
 
-  function var_arlo_dark() { return getCss('--arlo-dark'); }
   function getCss(name) { return getComputedStyle(document.documentElement).getPropertyValue(name).trim(); }
 
   function drawParticle(p) {
@@ -837,6 +1313,8 @@
   function draw() {
     ctx.clearRect(0, 0, W, H);
     Object.values(rooms).forEach(drawRoom);
+    drawRug();
+    drawFloorPlanks();
     drawTable();
     drawFoodBowl();
     drawCabinet();
@@ -844,10 +1322,10 @@
     drawLaundry();
 
     dogs.forEach(drawDog);
+    drawCat();
 
     screamRings.forEach(drawScreamRing);
 
-    // draw order by y for depth
     const actors = [{type:'player'}, ...parents.map(p => ({type:'parent', p}))];
     actors.sort((a,b) => {
       const ay = a.type === 'player' ? player.y : a.p.y;
@@ -864,12 +1342,16 @@
   }
 
   function loop(now) {
-    const dt = Math.min(0.05, (now - lastTime) / 1000);
+    const dt = Math.min(0.05, Math.max(0, (now - lastTime) / 1000));
     lastTime = now;
     update(dt);
     draw();
-    requestAnimationFrame(loop);
+    rafId = requestAnimationFrame(loop);
   }
+
+  // Draw the very first frame immediately so mobile users see the scene
+  // before pressing "Let's go" (avoids a blank canvas flash).
+  draw();
 })();
 </script>
 </body>
