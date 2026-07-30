@@ -22,13 +22,13 @@
     --wood-dark: #B08A57;
     --steven: #E8973F;
     --steven-dark: #C97A2E;
+    --anthony: #B33F3F;
+    --anthony-dark: #8C2E2E;
   }
 
   * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
 
-  html, body {
-    overscroll-behavior: none;
-  }
+  html, body { overscroll-behavior: none; }
 
   body {
     margin: 0;
@@ -45,7 +45,7 @@
   }
 
   h1 {
-    font-size: clamp(1.5rem, 5vw, 2.1rem);
+    font-size: clamp(1.4rem, 5vw, 2.1rem);
     font-weight: 700;
     margin: 4px 0 2px;
     letter-spacing: -0.5px;
@@ -64,7 +64,7 @@
 
   .hud {
     display: flex;
-    gap: 10px;
+    gap: 8px;
     align-items: center;
     margin-bottom: 10px;
     flex-wrap: wrap;
@@ -75,24 +75,39 @@
     background: var(--white);
     border: 3px solid var(--plum);
     border-radius: 999px;
-    padding: 7px 14px;
+    padding: 7px 13px;
     font-weight: 600;
-    font-size: 0.95rem;
+    font-size: 0.92rem;
     box-shadow: 3px 3px 0 var(--plum);
     display: flex;
     align-items: center;
-    gap: 7px;
+    gap: 6px;
     white-space: nowrap;
   }
 
-  .pill.button {
-    cursor: pointer;
-    touch-action: manipulation;
-  }
+  .pill.button { cursor: pointer; touch-action: manipulation; }
   .pill.button:active { transform: translate(2px,2px); box-shadow: none; }
 
+  .pill.urgent {
+    background: #FFE1E1;
+    border-color: var(--anthony);
+    color: var(--anthony-dark);
+    animation: urgentPulse 0.7s infinite;
+  }
+  @keyframes urgentPulse {
+    0%, 100% { transform: scale(1); }
+    50% { transform: scale(1.06); }
+  }
+
+  .pill.combo-pill {
+    background: var(--coin);
+    border-color: var(--plum);
+    color: var(--plum);
+  }
+  .pill.combo-pill[hidden] { display: none; }
+
   .scream-meter {
-    width: 70px;
+    width: 62px;
     height: 14px;
     background: #eee;
     border: 2px solid var(--plum);
@@ -126,7 +141,7 @@
 
   .controls-note {
     margin-top: 12px;
-    font-size: 0.82rem;
+    font-size: 0.8rem;
     color: #7A6A82;
     text-align: center;
     max-width: 620px;
@@ -135,26 +150,60 @@
   }
   .controls-note b { color: var(--plum); }
 
+  /* ---------- Overlays: fixed to viewport so they never get squeezed
+     into a tiny mobile-sized canvas box, and always scroll if content
+     is taller than the screen. This is what was causing jumbled text. ---------- */
   .overlay {
-    position: absolute;
+    position: fixed;
     inset: 0;
-    background: rgba(74,59,82,0.92);
-    border-radius: 14px;
+    z-index: 60;
+    background: rgba(74,59,82,0.94);
     display: flex;
     flex-direction: column;
     align-items: center;
     justify-content: center;
     color: var(--white);
     text-align: center;
-    padding: 20px;
-    gap: 2px;
+    padding: 24px 16px;
+    overflow-y: auto;
   }
-  .overlay h2 { font-size: clamp(1.2rem, 5vw, 1.6rem); margin-bottom: 4px; }
-  .overlay p { font-size: 0.9rem; max-width: 380px; line-height: 1.55; margin: 3px 0; }
+  .overlay[hidden] { display: none; }
+
+  .overlay-card {
+    width: 100%;
+    max-width: 420px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    margin: auto;
+  }
+
+  .overlay h2 { font-size: clamp(1.2rem, 5.5vw, 1.6rem); margin: 0 0 4px; }
   .overlay .big-stat { font-size: 2.2rem; font-weight: 700; color: var(--coin); margin: 6px 0 0; }
   .overlay .sub-stat { font-size: 0.85rem; color: #D8CBE0; margin-bottom: 6px; }
+
+  .how-to {
+    display: flex;
+    flex-direction: column;
+    gap: 7px;
+    margin: 12px 0 4px;
+    width: 100%;
+  }
+  .how-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    text-align: left;
+    font-size: 0.86rem;
+    line-height: 1.35;
+    background: rgba(255,255,255,0.08);
+    border-radius: 10px;
+    padding: 8px 12px;
+  }
+  .how-row .ico { font-size: 1.15rem; flex: 0 0 auto; }
+
   .overlay button {
-    margin-top: 14px;
+    margin-top: 16px;
     font-family: 'Fredoka', sans-serif;
     font-weight: 700;
     font-size: 1.05rem;
@@ -168,7 +217,6 @@
     box-shadow: 3px 3px 0 var(--wall);
   }
   .overlay button:active { transform: translate(2px,2px); box-shadow: none; }
-  .overlay[hidden] { display: none; }
 
   /* ---------- Mobile controls ---------- */
   .mobile-controls {
@@ -246,41 +294,53 @@
 
 <div class="hud">
   <div class="pill">🪙 <span id="coinCount">0</span></div>
-  <div class="pill">⏱ <span id="timeLeft">1:30</span></div>
+  <div class="pill" id="timerPill">⏱ <span id="timeLeft">1:30</span></div>
+  <div class="pill combo-pill" id="comboPill" hidden>🔥 <span id="comboCount">x2</span></div>
   <div class="pill">😱 <div class="scream-meter"><div class="scream-fill" id="screamFill"></div></div></div>
+  <button class="pill button" id="muteBtn" type="button" aria-label="Mute sound">🔊</button>
   <button class="pill button" id="pauseBtn" type="button" aria-label="Pause game">⏸</button>
 </div>
 
 <div class="wrap">
   <canvas id="gameCanvas" width="900" height="580"></canvas>
+</div>
 
-  <div class="overlay" id="startOverlay">
+<div class="overlay" id="startOverlay">
+  <div class="overlay-card">
     <h2>Naptime is a lie. It's Chaos Hour.</h2>
-    <p>Move Arlo around the house with <b>arrow keys / WASD</b>, or the on-screen pad on mobile.</p>
-    <p>Pull the dogs' tails, raid the cabinet, splash the water bowl, wreck the laundry, and fling some food — everything drops a coin.</p>
-    <p>Say hi to <b>Steven the cat</b> too — he might purr, or he might not.</p>
-    <p>When Mom or Dad get close, hit <b>SPACE</b> to unleash Arlo's superpower scream and send them dizzy!</p>
+    <div class="how-to">
+      <div class="how-row"><span class="ico">🕹️</span> Move with arrow keys / WASD, or the on-screen pad</div>
+      <div class="how-row"><span class="ico">🐾</span> Pull tails, raid the cabinet, splash, wreck laundry, dump toys — everything drops coins</div>
+      <div class="how-row"><span class="ico">🐱</span> Pet Steven the cat — he might purr, or he might not</div>
+      <div class="how-row"><span class="ico">🔗</span> Chain interactions quickly for combo bonus coins</div>
+      <div class="how-row"><span class="ico">😱</span> Hit SPACE (or the scream button) when Mom or Dad get close to send them dizzy</div>
+      <div class="how-row"><span class="ico">🏃</span> 90 seconds total — brace yourself when Anthony shows up at the 10-second mark</div>
+    </div>
     <button id="startBtn">Let's go, Arlo</button>
   </div>
+</div>
 
-  <div class="overlay" id="endOverlay" hidden>
+<div class="overlay" id="endOverlay" hidden>
+  <div class="overlay-card">
     <h2 id="endTitle">Nap time!</h2>
     <div class="big-stat"><span id="finalCoins">0</span> 🪙</div>
     <div class="sub-stat" id="highScoreLine">Best: 0</div>
-    <p>Steven has already forgotten this happened.</p>
+    <p style="font-size:0.9rem; max-width:340px; line-height:1.5; margin:4px 0;">Steven has already forgotten this happened.</p>
     <button id="restartBtn">Go again</button>
   </div>
+</div>
 
-  <div class="overlay" id="pauseOverlay" hidden>
+<div class="overlay" id="pauseOverlay" hidden>
+  <div class="overlay-card">
     <h2>Paused</h2>
-    <p>Mom and Dad are frozen too. Take a breath.</p>
+    <p style="font-size:0.9rem; max-width:340px; line-height:1.5; margin:4px 0;">Mom, Dad, and Anthony are frozen too. Take a breath.</p>
     <button id="resumeBtn">Resume</button>
   </div>
 </div>
 
 <div class="controls-note">
-  <b>Move:</b> Arrow keys or WASD &nbsp;•&nbsp; <b>Scream:</b> Spacebar &nbsp;•&nbsp; <b>Pause:</b> P
-  <br>Meet <b>Maggie</b>, <b>Albus</b>, <b>Bean</b>, and <b>Steven</b> — nothing in this house is safe.
+  <b>Move:</b> Arrow keys / WASD &nbsp;•&nbsp; <b>Scream:</b> Space &nbsp;•&nbsp; <b>Pause:</b> P
+  <br>Meet <b>Maggie</b>, <b>Albus</b>, <b>Bean</b>, and <b>Steven</b> — and watch for <b>Anthony</b> late in the round.
 </div>
 
 <div class="mobile-controls" id="mobileControls">
@@ -299,7 +359,7 @@
 (function() {
   'use strict';
 
-  // ---------- Setup & DOM ----------
+  // ================= DOM =================
   const canvas = document.getElementById('gameCanvas');
   const ctx = canvas.getContext('2d');
   const GAME_W = 900, GAME_H = 580;
@@ -307,6 +367,9 @@
 
   const coinCountEl = document.getElementById('coinCount');
   const timeLeftEl = document.getElementById('timeLeft');
+  const timerPill = document.getElementById('timerPill');
+  const comboPill = document.getElementById('comboPill');
+  const comboCountEl = document.getElementById('comboCount');
   const screamFillEl = document.getElementById('screamFill');
   const startOverlay = document.getElementById('startOverlay');
   const endOverlay = document.getElementById('endOverlay');
@@ -315,11 +378,13 @@
   const restartBtn = document.getElementById('restartBtn');
   const resumeBtn = document.getElementById('resumeBtn');
   const pauseBtn = document.getElementById('pauseBtn');
+  const muteBtn = document.getElementById('muteBtn');
   const finalCoinsEl = document.getElementById('finalCoins');
   const highScoreLineEl = document.getElementById('highScoreLine');
   const endTitleEl = document.getElementById('endTitle');
 
-  const CHAOS_DURATION = 90; // seconds
+  const CHAOS_DURATION = 90;
+  const ANTHONY_TRIGGER = 10;
 
   let started = false;
   let paused = false;
@@ -329,18 +394,17 @@
   let lastTime = 0;
   let rafId = null;
 
-  // ---------- Safe storage (private browsing / disabled storage won't crash) ----------
+  // ================= Safe storage =================
   function loadHighScore() {
-    try {
-      return parseInt(localStorage.getItem('arloChaosHighScore') || '0', 10) || 0;
-    } catch (e) { return 0; }
+    try { return parseInt(localStorage.getItem('arloChaosHighScore') || '0', 10) || 0; }
+    catch (e) { return 0; }
   }
   function saveHighScore(v) {
     try { localStorage.setItem('arloChaosHighScore', String(v)); } catch (e) { /* ignore */ }
   }
   let highScore = loadHighScore();
 
-  // ---------- Canvas scaling (crisp on retina/mobile, responsive by CSS) ----------
+  // ================= Canvas scaling =================
   function fitCanvas() {
     const dpr = Math.min(window.devicePixelRatio || 1, 2);
     canvas.width = Math.round(GAME_W * dpr);
@@ -351,7 +415,145 @@
   window.addEventListener('resize', fitCanvas);
   window.addEventListener('orientationchange', fitCanvas);
 
-  // ---------- Input ----------
+  // ================= Audio (procedural, no asset files) =================
+  let audioCtx = null, masterGain = null, musicGain = null, sfxGain = null, noiseBuffer = null;
+  let audioMuted = false;
+
+  function ensureAudio() {
+    if (audioCtx) return audioCtx;
+    try {
+      audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+      masterGain = audioCtx.createGain();
+      masterGain.gain.value = audioMuted ? 0 : 1;
+      musicGain = audioCtx.createGain();
+      musicGain.gain.value = 0.16;
+      sfxGain = audioCtx.createGain();
+      sfxGain.gain.value = 0.55;
+      musicGain.connect(masterGain);
+      sfxGain.connect(masterGain);
+      masterGain.connect(audioCtx.destination);
+    } catch (e) { audioCtx = null; }
+    return audioCtx;
+  }
+
+  function getNoiseBuffer(ctxRef) {
+    if (noiseBuffer) return noiseBuffer;
+    const len = ctxRef.sampleRate * 1;
+    noiseBuffer = ctxRef.createBuffer(1, len, ctxRef.sampleRate);
+    const data = noiseBuffer.getChannelData(0);
+    for (let i = 0; i < len; i++) data[i] = Math.random() * 2 - 1;
+    return noiseBuffer;
+  }
+
+  function playNote(freq, time, dur, type, gainAmt, dest) {
+    const ctxRef = ensureAudio(); if (!ctxRef || !dest) return;
+    try {
+      const osc = ctxRef.createOscillator();
+      osc.type = type;
+      osc.frequency.setValueAtTime(freq, time);
+      const g = ctxRef.createGain();
+      g.gain.setValueAtTime(0.0001, time);
+      g.gain.exponentialRampToValueAtTime(Math.max(0.0005, gainAmt), time + 0.008);
+      g.gain.exponentialRampToValueAtTime(0.0001, time + dur);
+      osc.connect(g).connect(dest);
+      osc.start(time);
+      osc.stop(time + dur + 0.05);
+    } catch (e) { /* ignore */ }
+  }
+
+  function playNoise(time, dur, filterFreq, gainAmt, q, dest) {
+    const ctxRef = ensureAudio(); if (!ctxRef || !dest) return;
+    try {
+      const src = ctxRef.createBufferSource();
+      src.buffer = getNoiseBuffer(ctxRef);
+      const filt = ctxRef.createBiquadFilter();
+      filt.type = 'bandpass';
+      filt.frequency.value = filterFreq;
+      filt.Q.value = q || 1;
+      const g = ctxRef.createGain();
+      g.gain.setValueAtTime(0.0001, time);
+      g.gain.exponentialRampToValueAtTime(Math.max(0.0005, gainAmt), time + 0.01);
+      g.gain.exponentialRampToValueAtTime(0.0001, time + dur);
+      src.connect(filt).connect(g).connect(dest);
+      src.start(time);
+      src.stop(time + dur + 0.05);
+    } catch (e) { /* ignore */ }
+  }
+
+  function sfx(name) {
+    const ctxRef = ensureAudio(); if (!ctxRef || !sfxGain) return;
+    const t = ctxRef.currentTime;
+    switch (name) {
+      case 'coin': playNote(880, t, 0.1, 'square', 0.22, sfxGain); playNote(1320, t + 0.05, 0.1, 'square', 0.18, sfxGain); break;
+      case 'yip': playNoise(t, 0.12, 1000, 0.3, 3, sfxGain); break;
+      case 'splash': playNoise(t, 0.18, 500, 0.25, 1.5, sfxGain); break;
+      case 'clang': playNote(220, t, 0.2, 'square', 0.3, sfxGain); playNote(165, t + 0.04, 0.18, 'square', 0.22, sfxGain); break;
+      case 'whee': playNote(660, t, 0.12, 'triangle', 0.2, sfxGain); playNote(880, t + 0.08, 0.12, 'triangle', 0.18, sfxGain); playNote(990, t + 0.16, 0.14, 'triangle', 0.16, sfxGain); break;
+      case 'splat': playNoise(t, 0.1, 300, 0.25, 2, sfxGain); break;
+      case 'scream': playNote(700, t, 0.35, 'sawtooth', 0.28, sfxGain); playNote(500, t + 0.05, 0.3, 'sawtooth', 0.22, sfxGain); break;
+      case 'dizzy': playNote(300, t, 0.25, 'sine', 0.2, sfxGain); playNote(400, t + 0.1, 0.25, 'sine', 0.16, sfxGain); break;
+      case 'purr': playNote(520, t, 0.18, 'sine', 0.16, sfxGain); break;
+      case 'hiss': playNoise(t, 0.25, 2200, 0.28, 4, sfxGain); break;
+      case 'catch': playNote(220, t, 0.3, 'sawtooth', 0.28, sfxGain); break;
+      case 'combo': playNote(1046, t, 0.09, 'square', 0.2, sfxGain); playNote(1318, t + 0.07, 0.09, 'square', 0.2, sfxGain); playNote(1568, t + 0.14, 0.12, 'square', 0.22, sfxGain); break;
+      case 'kick': playNote(180, t, 0.12, 'triangle', 0.25, sfxGain); break;
+      case 'toybox': playNote(700, t, 0.1, 'triangle', 0.2, sfxGain); playNote(900, t + 0.06, 0.1, 'triangle', 0.18, sfxGain); break;
+      case 'blocks': playNoise(t, 0.15, 350, 0.3, 1.5, sfxGain); break;
+      case 'anthony': playNote(110, t, 0.5, 'sawtooth', 0.3, sfxGain); playNote(90, t + 0.15, 0.5, 'sawtooth', 0.28, sfxGain); break;
+      case 'timeup': playNote(392, t, 0.2, 'sine', 0.2, sfxGain); playNote(330, t + 0.15, 0.2, 'sine', 0.18, sfxGain); playNote(262, t + 0.3, 0.3, 'sine', 0.2, sfxGain); break;
+    }
+  }
+
+  // Sims-like ambient marimba loop: sparse pentatonic-ish noodling over a soft walking bass.
+  const MUSIC_SCALE = [261.63, 293.66, 329.63, 392.00, 440.00, 493.88];
+  const MUSIC_BASS = [130.81, 146.83, 164.81, 196.00];
+  const MUSIC_STEP_DUR = 60 / 128 / 2;
+  let musicStep = 0;
+  let nextNoteTime = 0;
+  let musicSchedulerActive = false;
+
+  function playMusicStep(step, time) {
+    const beat = step % 16;
+    if (beat === 0 || beat === 8) {
+      playNote(MUSIC_BASS[Math.floor(step / 16) % MUSIC_BASS.length], time, 0.45, 'triangle', 0.12, musicGain);
+    }
+    if (Math.random() < 0.6) {
+      const octUp = Math.random() < 0.22;
+      const note = MUSIC_SCALE[Math.floor(Math.random() * MUSIC_SCALE.length)] * (octUp ? 2 : 1);
+      playNote(note, time, 0.16, 'sine', 0.07, musicGain);
+    }
+  }
+
+  function scheduleMusic() {
+    const ctxRef = ensureAudio();
+    if (!ctxRef) { musicSchedulerActive = false; return; }
+    while (nextNoteTime < ctxRef.currentTime + 0.25) {
+      playMusicStep(musicStep, nextNoteTime);
+      nextNoteTime += MUSIC_STEP_DUR;
+      musicStep++;
+    }
+    setTimeout(scheduleMusic, 60);
+  }
+
+  function startMusic() {
+    const ctxRef = ensureAudio();
+    if (!ctxRef) return;
+    if (ctxRef.state === 'suspended') ctxRef.resume();
+    if (!musicSchedulerActive) {
+      musicSchedulerActive = true;
+      nextNoteTime = ctxRef.currentTime + 0.1;
+      scheduleMusic();
+    }
+  }
+
+  muteBtn.addEventListener('click', () => {
+    audioMuted = !audioMuted;
+    muteBtn.textContent = audioMuted ? '🔇' : '🔊';
+    const ctxRef = ensureAudio();
+    if (masterGain && ctxRef) masterGain.gain.setTargetAtTime(audioMuted ? 0 : 1, ctxRef.currentTime, 0.05);
+  });
+
+  // ================= Input =================
   const keys = {};
   window.addEventListener('keydown', e => {
     if (['ArrowUp','ArrowDown','ArrowLeft','ArrowRight',' '].includes(e.key)) e.preventDefault();
@@ -361,7 +563,6 @@
   });
   window.addEventListener('keyup', e => { keys[e.key.toLowerCase()] = false; });
 
-  // Unified pointer-based binding (avoids duplicate touch+mouse firing and the 300ms delay)
   function bindHold(id, key) {
     const el = document.getElementById(id);
     if (!el) return;
@@ -395,7 +596,7 @@
   screamBtn.addEventListener('pointerdown', ev => { ev.preventDefault(); tryScream(); });
   screamBtn.addEventListener('contextmenu', ev => ev.preventDefault());
 
-  // ---------- Game lifecycle ----------
+  // ================= Lifecycle =================
   function startLoopIfNeeded() {
     if (rafId !== null) return;
     lastTime = performance.now();
@@ -406,8 +607,8 @@
     started = true;
     gameOver = false;
     paused = false;
-    startOverlay.hidden = false;
-    startOverlay.style.display = 'none';
+    startOverlay.hidden = true;
+    startMusic();
     startLoopIfNeeded();
   });
 
@@ -417,6 +618,7 @@
     started = true;
     gameOver = false;
     paused = false;
+    startMusic();
     startLoopIfNeeded();
   });
 
@@ -430,7 +632,6 @@
   pauseBtn.addEventListener('click', togglePause);
   resumeBtn.addEventListener('click', togglePause);
 
-  // Auto-pause when the tab/app loses focus, so parents don't teleport on return
   document.addEventListener('visibilitychange', () => {
     if (document.hidden && started && !gameOver && !paused) togglePause();
   });
@@ -440,6 +641,7 @@
 
   function endGame() {
     gameOver = true;
+    sfx('timeup');
     if (coins > highScore) {
       highScore = coins;
       saveHighScore(highScore);
@@ -452,31 +654,55 @@
     endOverlay.hidden = false;
   }
 
-  // ---------- World ----------
+  // ================= World: a real house layout =================
   const rooms = {
-    kitchen:  { x: 20,  y: 20,  w: 400, h: 280, color: '#FDEBC8', label: 'Kitchen' },
-    living:   { x: 440, y: 20,  w: 440, h: 280, color: '#EAF7F0', label: 'Living Room' },
-    play:     { x: 20,  y: 320, w: 860, h: 240, color: '#D9F0FA', label: 'Playroom' }
+    kitchen: { x: 20,  y: 20,  w: 404, h: 280, color: '#FDEBC8', label: 'Kitchen' },
+    living:  { x: 438, y: 20,  w: 442, h: 280, color: '#EAF7F0', label: 'Living Room' },
+    play:    { x: 20,  y: 316, w: 860, h: 244, color: '#D9F0FA', label: 'Playroom' }
   };
 
-  const initialPlayer = { x: 450, y: 450, w: 34, h: 40, speed: 190, dir: 'down' };
+  // Interior walls with doorway gaps, so the house actually reads as a floor plan.
+  const WALL_T = 14;
+  const walls = [
+    // vertical wall between kitchen & living room, door gap y150-230
+    { x: 424, y: 20,  w: WALL_T, h: 130 },
+    { x: 424, y: 230, w: WALL_T, h: 70 },
+    // horizontal wall between top rooms & playroom, door gaps under each room
+    { x: 20,  y: 296, w: 130, h: WALL_T },
+    { x: 260, y: 296, w: 340, h: WALL_T },
+    { x: 700, y: 296, w: 180, h: WALL_T }
+  ];
 
-  // ---------- Player: Arlo ----------
+  function resolveWallCollision(entity) {
+    walls.forEach(w => {
+      if (entity.x < w.x + w.w && entity.x + entity.w > w.x && entity.y < w.y + w.h && entity.y + entity.h > w.y) {
+        const overlapLeft = (entity.x + entity.w) - w.x;
+        const overlapRight = (w.x + w.w) - entity.x;
+        const overlapTop = (entity.y + entity.h) - w.y;
+        const overlapBottom = (w.y + w.h) - entity.y;
+        const minX = Math.min(overlapLeft, overlapRight);
+        const minY = Math.min(overlapTop, overlapBottom);
+        if (minX < minY) {
+          if (overlapLeft < overlapRight) entity.x -= overlapLeft; else entity.x += overlapRight;
+        } else {
+          if (overlapTop < overlapBottom) entity.y -= overlapTop; else entity.y += overlapBottom;
+        }
+      }
+    });
+  }
+
+  const initialPlayer = { x: 450, y: 450, w: 34, h: 40, speed: 190 };
+
   let player = makePlayer();
   function makePlayer() {
     return {
       x: initialPlayer.x, y: initialPlayer.y, w: initialPlayer.w, h: initialPlayer.h,
-      speed: initialPlayer.speed,
-      dir: 'down',
-      caught: false,
-      caughtTimer: 0,
-      screamCooldown: 0,
-      screamMax: 3.5,
-      bob: 0
+      speed: initialPlayer.speed, dir: 'down',
+      caught: false, caughtTimer: 0,
+      screamCooldown: 0, screamMax: 3.5, bob: 0
     };
   }
 
-  // ---------- Dogs ----------
   const dogStart = [
     { name: 'Maggie', color: '#C98A4B', x: 150, y: 150 },
     { name: 'Albus',  color: '#EDEDED', x: 650, y: 120 },
@@ -490,21 +716,17 @@
     }));
   }
 
-  // ---------- Steven the cat ----------
   const catStart = { x: 340, y: 190 };
   let cat = makeCat();
   function makeCat() {
     return {
       name: 'Steven', x: catStart.x, y: catStart.y, r: 15,
       vx: 0, vy: 0, wanderT: 1.5, cooldown: 0, flee: 0,
-      mood: 0,          // >0 = purring/happy animation
-      hiss: 0,           // >0 = hiss/swipe animation
-      tailT: 0,          // tail-flick timer (ambient idle animation)
-      swatCooldown: 6 + Math.random() * 6 // ambient "knocks something off the table" event
+      mood: 0, hiss: 0, tailT: 0,
+      swatCooldown: 6 + Math.random() * 6
     };
   }
 
-  // ---------- Parents ----------
   const parentStart = [
     { name: 'Mom', color: '#D46A8F', x: 700, y: 450, speed: 130 },
     { name: 'Dad', color: '#4E7FB5', x: 100, y: 480, speed: 135 }
@@ -517,33 +739,34 @@
     }));
   }
 
-  // ---------- Interactables ----------
+  let anthony = null;
+  let anthonySpawned = false;
+
   function makeInteractables() {
     return {
       cabinet: { x: 60, y: 40, w: 110, h: 70, cooldown: 0, openT: 0 },
       waterBowl: { x: 130, y: 250, r: 26, cooldown: 0, splashT: 0 },
       laundry: { x: 150, y: 400, w: 70, h: 55, cooldown: 0, messT: 0 },
       foodBowl: { x: 330, y: 90, r: 20, cooldown: 0, throwT: 0 },
-      table: { x: 300, y: 150, w: 110, h: 60 }
+      table: { x: 300, y: 150, w: 110, h: 60 },
+      toyBox: { x: 700, y: 400, w: 92, h: 60, cooldown: 0, openT: 0 },
+      blockTower: { x: 590, y: 440, w: 56, h: 76, cooldown: 0, hitT: 0 },
+      ball: { x: 480, y: 480, r: 14, vx: 0, vy: 0, cooldown: 0 },
+      teddy: { x: 780, y: 500 },
+      bookshelf: { x: 540, y: 20, w: 20, h: 240 }
     };
   }
-  let { cabinet, waterBowl, laundry, foodBowl, table } = makeInteractables();
+  let { cabinet, waterBowl, laundry, foodBowl, table, toyBox, blockTower, ball, teddy, bookshelf } = makeInteractables();
 
-  // ---------- Particles / effects ----------
+  // ================= FX state =================
   let particles = [];
   let flyingCoins = [];
   let toasts = [];
   let screamRings = [];
 
   function spawnParticle(p) { particles.push(Object.assign({ life: 1, maxLife: 1, rot: 0, rotSpeed: 0, gravity: 0 }, p)); }
-
-  function spawnCoin(fromX, fromY) {
-    flyingCoins.push({ x: fromX, y: fromY, t: 0, dur: 0.5, sx: fromX, sy: fromY });
-  }
-
-  function toast(text, x, y, color) {
-    toasts.push({ text, x, y, life: 1.2, maxLife: 1.2, color: color || '#4A3B52' });
-  }
+  function spawnCoin(fromX, fromY) { flyingCoins.push({ x: fromX, y: fromY, t: 0, dur: 0.5, sx: fromX, sy: fromY }); }
+  function toast(text, x, y, color) { toasts.push({ text, x, y, life: 1.2, maxLife: 1.2, color: color || '#4A3B52' }); }
 
   function addCoins(n, x, y) {
     coins = Math.max(0, coins + n);
@@ -552,17 +775,44 @@
   }
 
   function dist(x1,y1,x2,y2){ return Math.hypot(x1-x2, y1-y2); }
+  function rectHit(a, b) { return a.x < b.x + b.w && a.x + a.w > b.x && a.y < b.y + b.h && a.y + a.h > b.y; }
+
+  // ================= Combo scoring =================
+  let combo = 0;
+  let comboTimer = 0;
+  const COMBO_WINDOW = 2.2;
+
+  function registerComboHit(x, y) {
+    combo++;
+    comboTimer = COMBO_WINDOW;
+    if (combo >= 2) {
+      const bonus = Math.min(combo - 1, 6);
+      addCoins(bonus, x, y);
+      toast('Combo x' + combo + '! +' + bonus, x, y - 20, '#4A3B52');
+      sfx('combo');
+    }
+    updateComboDisplay();
+  }
+  function breakCombo() {
+    if (combo > 0) { combo = 0; comboTimer = 0; updateComboDisplay(); }
+  }
+  function updateComboDisplay() {
+    if (combo >= 2) { comboPill.hidden = false; comboCountEl.textContent = 'x' + combo; }
+    else { comboPill.hidden = true; }
+  }
 
   function resetGame() {
     coins = 0;
     coinCountEl.textContent = '0';
     timeLeft = CHAOS_DURATION;
     updateTimerDisplay();
+    combo = 0; comboTimer = 0; updateComboDisplay();
     player = makePlayer();
     dogs = makeDogs();
     cat = makeCat();
     parents = makeParents();
-    ({ cabinet, waterBowl, laundry, foodBowl, table } = makeInteractables());
+    anthony = null; anthonySpawned = false;
+    ({ cabinet, waterBowl, laundry, foodBowl, table, toyBox, blockTower, ball, teddy, bookshelf } = makeInteractables());
     particles = []; flyingCoins = []; toasts = []; screamRings = [];
   }
 
@@ -571,10 +821,10 @@
     const m = Math.floor(t / 60);
     const s = t % 60;
     timeLeftEl.textContent = m + ':' + String(s).padStart(2, '0');
+    timerPill.classList.toggle('urgent', t <= ANTHONY_TRIGGER && t > 0);
   }
   updateTimerDisplay();
 
-  // ---------- Scream ----------
   function tryScream() {
     if (!started || paused || gameOver) return;
     if (player.screamCooldown > 0) return;
@@ -582,20 +832,77 @@
     const cx = player.x + player.w/2, cy = player.y + player.h/2;
     screamRings.push({ x: cx, y: cy, r: 0, maxR: 340, hit: new Set() });
     toast('AAAAAH!', cx, player.y - 10, '#E0563F');
+    sfx('scream');
   }
 
-  // ---------- Update ----------
+  function maybeSpawnAnthony() {
+    if (anthonySpawned || gameOver) return;
+    if (timeLeft <= ANTHONY_TRIGGER) {
+      anthonySpawned = true;
+      const edge = Math.floor(Math.random() * 4);
+      let ax = 450, ay = 300;
+      if (edge === 0) { ax = 40; ay = 340; }
+      else if (edge === 1) { ax = 860; ay = 340; }
+      else if (edge === 2) { ax = 450; ay = 40; }
+      else { ax = 450; ay = 560; }
+      anthony = { x: ax, y: ay, speed: 172, dizzy: 0 };
+      toast("ANTHONY'S HERE — RUN!", player.x, player.y - 50, '#B33F3F');
+      sfx('anthony');
+    }
+  }
+
+  function updateAnthony(dt) {
+    if (!anthony) return;
+    if (anthony.dizzy > 0) {
+      anthony.dizzy -= dt;
+    } else {
+      screamRings.forEach(ring => {
+        const d = dist(ring.x, ring.y, anthony.x, anthony.y);
+        if (!ring.hit.has(anthony) && Math.abs(d - ring.r) < 26) {
+          ring.hit.add(anthony);
+          anthony.dizzy = 1.6;
+          toast('Anthony got dizzy!', anthony.x, anthony.y - 30, '#8B5FBF');
+          sfx('dizzy');
+        }
+      });
+      if (!gameOver) {
+        const pcx = player.x + player.w/2, pcy = player.y + player.h/2;
+        const ang = Math.atan2(pcy - anthony.y, pcx - anthony.x);
+        anthony.x += Math.cos(ang) * anthony.speed * dt;
+        anthony.y += Math.sin(ang) * anthony.speed * dt;
+        const d = dist(pcx, pcy, anthony.x, anthony.y);
+        if (d < 28 && !player.caught) {
+          player.caught = true;
+          player.caughtTimer = 1.6;
+          addCoins(-2, anthony.x, anthony.y);
+          breakCombo();
+          toast('Anthony: not so fast!', anthony.x, anthony.y - 30, '#B33F3F');
+          sfx('catch');
+        }
+      }
+    }
+    anthony.x = Math.max(30, Math.min(W - 30, anthony.x));
+    anthony.y = Math.max(30, Math.min(H - 30, anthony.y));
+  }
+
+  // ================= Update =================
   function update(dt) {
     if (!started || paused) return;
 
     if (!gameOver) {
       timeLeft -= dt;
       updateTimerDisplay();
+      maybeSpawnAnthony();
       if (timeLeft <= 0) {
         timeLeft = 0;
         updateTimerDisplay();
         endGame();
       }
+    }
+
+    if (comboTimer > 0) {
+      comboTimer -= dt;
+      if (comboTimer <= 0) breakCombo();
     }
 
     // Player movement
@@ -608,10 +915,12 @@
     }
     const len = Math.hypot(mvx, mvy) || 1;
     if (mvx || mvy) player.bob += dt * 10;
+    const prevX = player.x, prevY = player.y;
     player.x += (mvx/len) * player.speed * dt;
     player.y += (mvy/len) * player.speed * dt;
     player.x = Math.max(10, Math.min(W - player.w - 10, player.x));
     player.y = Math.max(10, Math.min(H - player.h - 10, player.y));
+    resolveWallCollision(player);
 
     if (player.screamCooldown > 0) player.screamCooldown -= dt;
     screamFillEl.style.width = (100 * (1 - Math.max(0, player.screamCooldown) / player.screamMax)) + '%';
@@ -621,7 +930,6 @@
       if (player.caughtTimer <= 0) player.caught = false;
     }
 
-    // Scream rings
     screamRings.forEach(ring => { ring.r += dt * 700; });
     screamRings = screamRings.filter(r => r.r < r.maxR);
 
@@ -657,12 +965,14 @@
         dog.vx = Math.cos(ang) * 160;
         dog.vy = Math.sin(ang) * 160;
         addCoins(1, dog.x, dog.y - 10);
+        registerComboHit(dog.x, dog.y - 26);
         toast('Pulled ' + dog.name + "'s tail!", dog.x, dog.y - 30, '#C98A4B');
+        sfx('yip');
       }
     });
 
-    // Steven the cat
     updateCat(dt);
+    updateAnthony(dt);
 
     // Parents
     parents.forEach(par => {
@@ -677,6 +987,7 @@
             par.state = 'wander';
             par.chaseGrace = 1.5;
             toast(par.name + ' got dizzy!', par.x, par.y - 30, '#8B5FBF');
+            sfx('dizzy');
           }
         });
       }
@@ -701,8 +1012,10 @@
             player.caught = true;
             player.caughtTimer = 1.4;
             addCoins(-1, par.x, par.y);
+            breakCombo();
             par.chaseGrace = 2;
             toast(par.name + ': Gotcha!', par.x, par.y - 30, '#D46A8F');
+            sfx('catch');
           }
         } else {
           par.wanderT -= dt;
@@ -737,7 +1050,9 @@
         });
       }
       addCoins(1, cabinet.x + cabinet.w/2, cabinet.y + cabinet.h);
+      registerComboHit(cabinet.x + cabinet.w/2, cabinet.y - 6);
       toast('CLANG! CLANG!', cabinet.x + cabinet.w/2, cabinet.y - 10, '#8C949B');
+      sfx('clang');
     }
 
     // Water bowl
@@ -756,7 +1071,9 @@
         });
       }
       addCoins(1, waterBowl.x, waterBowl.y);
+      registerComboHit(waterBowl.x, waterBowl.y - 20);
       toast('SPLASH!', waterBowl.x, waterBowl.y - 30, '#3E9AC7');
+      sfx('splash');
     }
 
     // Laundry
@@ -776,7 +1093,9 @@
         });
       }
       addCoins(1, laundry.x + laundry.w/2, laundry.y);
+      registerComboHit(laundry.x + laundry.w/2, laundry.y - 6);
       toast('WHEEE! Laundry everywhere!', laundry.x + laundry.w/2, laundry.y - 10, '#B9A6DC');
+      sfx('whee');
     }
 
     // Food
@@ -793,7 +1112,71 @@
         shape: 'food', maxLife: 1, life: 1
       });
       addCoins(1, foodBowl.x, foodBowl.y);
+      registerComboHit(foodBowl.x, foodBowl.y - 20);
       toast('SPLAT!', foodBowl.x, foodBowl.y - 25, '#E8973F');
+      sfx('splat');
+    }
+
+    // Toy box
+    if (toyBox.cooldown > 0) toyBox.cooldown -= dt;
+    if (toyBox.openT > 0) toyBox.openT -= dt;
+    if (!gameOver && toyBox.cooldown <= 0 && rectHit(player, toyBox)) {
+      toyBox.cooldown = 5;
+      toyBox.openT = 1;
+      const cols = ['#F2A6B0','#9AD1D4','#F4D06F','#B9A6DC','#8FD9B6'];
+      for (let i = 0; i < 6; i++) {
+        spawnParticle({
+          x: toyBox.x + toyBox.w/2, y: toyBox.y,
+          vx: (Math.random()-0.5)*180, vy: -80-Math.random()*80,
+          gravity: 420, size: 8+Math.random()*5, color: cols[i%cols.length],
+          shape: 'food', maxLife: 1.2, life: 1.2
+        });
+      }
+      addCoins(1, toyBox.x + toyBox.w/2, toyBox.y);
+      registerComboHit(toyBox.x + toyBox.w/2, toyBox.y - 18);
+      toast('Toys everywhere!', toyBox.x + toyBox.w/2, toyBox.y - 10, '#9AD1D4');
+      sfx('toybox');
+    }
+
+    // Block tower
+    if (blockTower.cooldown > 0) blockTower.cooldown -= dt;
+    if (blockTower.hitT > 0) blockTower.hitT -= dt;
+    if (!gameOver && blockTower.cooldown <= 0 && rectHit(player, blockTower)) {
+      blockTower.cooldown = 6;
+      blockTower.hitT = 1.2;
+      const cols = ['#F2A6B0','#9AD1D4','#F4D06F'];
+      for (let i = 0; i < 6; i++) {
+        spawnParticle({
+          x: blockTower.x + blockTower.w/2, y: blockTower.y + blockTower.h/2,
+          vx: (Math.random()-0.5)*220, vy: -100-Math.random()*80,
+          gravity: 460, size: 8, color: cols[i%cols.length],
+          shape: 'cloth', maxLife: 1.1, life: 1.1,
+          rot: Math.random()*Math.PI, rotSpeed: (Math.random()-0.5)*6
+        });
+      }
+      addCoins(1, blockTower.x + blockTower.w/2, blockTower.y);
+      registerComboHit(blockTower.x + blockTower.w/2, blockTower.y - 18);
+      toast('CRASH! Blocks everywhere!', blockTower.x + blockTower.w/2, blockTower.y - 16, '#F4D06F');
+      sfx('blocks');
+    }
+
+    // Ball (kickable, bounces around the playroom)
+    ball.vx *= 0.92; ball.vy *= 0.92;
+    ball.x += ball.vx * dt; ball.y += ball.vy * dt;
+    const pr = rooms.play;
+    if (ball.x < pr.x + 16) { ball.x = pr.x + 16; ball.vx *= -0.6; }
+    if (ball.x > pr.x + pr.w - 16) { ball.x = pr.x + pr.w - 16; ball.vx *= -0.6; }
+    if (ball.y < pr.y + 16) { ball.y = pr.y + 16; ball.vy *= -0.6; }
+    if (ball.y > pr.y + pr.h - 16) { ball.y = pr.y + pr.h - 16; ball.vy *= -0.6; }
+    if (ball.cooldown > 0) ball.cooldown -= dt;
+    if (!gameOver && ball.cooldown <= 0 && dist(player.x+player.w/2, player.y+player.h/2, ball.x, ball.y) < 16 + 22 && (Math.abs(ball.vx) + Math.abs(ball.vy) < 40)) {
+      ball.cooldown = 1;
+      const ang = Math.atan2(ball.y - (player.y+player.h/2), ball.x - (player.x+player.w/2));
+      ball.vx = Math.cos(ang) * 240; ball.vy = Math.sin(ang) * 240;
+      addCoins(1, ball.x, ball.y);
+      registerComboHit(ball.x, ball.y - 16);
+      toast('KICK!', ball.x, ball.y - 18, '#5FB6DE');
+      sfx('kick');
     }
 
     // Particles
@@ -834,7 +1217,6 @@
     } else {
       cat.wanderT -= dt;
       if (cat.wanderT <= 0) {
-        // cats saunter, they don't hurry
         const ang = Math.random() * Math.PI * 2;
         cat.vx = Math.cos(ang) * 22;
         cat.vy = Math.sin(ang) * 22;
@@ -846,16 +1228,16 @@
     cat.x = Math.max(30, Math.min(W - 30, cat.x));
     cat.y = Math.max(30, Math.min(H - 30, cat.y));
 
-    // Petting interaction
     if (!gameOver) {
       const pcx = player.x + player.w/2, pcy = player.y + player.h/2;
       if (cat.cooldown <= 0 && dist(pcx, pcy, cat.x, cat.y) < cat.r + 22) {
         cat.cooldown = 3.5;
         if (Math.random() < 0.78) {
-          // purr
           cat.mood = 1;
           addCoins(1, cat.x, cat.y - 10);
-          toast('Steven purrs. ' + '♥'.repeat(1), cat.x, cat.y - 30, '#E8973F');
+          registerComboHit(cat.x, cat.y - 26);
+          toast('Steven purrs.', cat.x, cat.y - 30, '#E8973F');
+          sfx('purr');
           for (let i = 0; i < 4; i++) {
             spawnParticle({
               x: cat.x, y: cat.y - 10,
@@ -865,7 +1247,6 @@
             });
           }
         } else {
-          // hiss
           cat.hiss = 0.6;
           cat.flee = 0.5;
           const ang = Math.atan2(cat.y - pcy, cat.x - pcx);
@@ -873,12 +1254,13 @@
           cat.vy = Math.sin(ang) * 140;
           player.caught = true;
           player.caughtTimer = 0.5;
+          breakCombo();
           toast('HISS! Steven is not a toy.', cat.x, cat.y - 30, '#8B5FBF');
+          sfx('hiss');
         }
       }
     }
 
-    // Ambient chaos: every so often Steven knocks something off the table by himself
     if (!gameOver) {
       cat.swatCooldown -= dt;
       if (cat.swatCooldown <= 0) {
@@ -886,6 +1268,7 @@
         const tx = table.x + table.w/2, ty = table.y - 6;
         addCoins(1, tx, ty);
         toast('Steven knocked something off the table!', tx, table.y - 14, '#8C949B');
+        sfx('clang');
         for (let i = 0; i < 4; i++) {
           spawnParticle({
             x: tx, y: ty,
@@ -899,32 +1282,49 @@
     }
   }
 
-  function rectHit(a, b) {
-    return a.x < b.x + b.w && a.x + a.w > b.x && a.y < b.y + b.h && a.y + a.h > b.y;
-  }
-
-  // ---------- Draw ----------
+  // ================= Draw =================
   function drawRoom(r) {
     ctx.fillStyle = r.color;
     ctx.fillRect(r.x, r.y, r.w, r.h);
-    ctx.strokeStyle = '#E8D9A8';
-    ctx.lineWidth = 2;
-    ctx.strokeRect(r.x, r.y, r.w, r.h);
     ctx.fillStyle = 'rgba(74,59,82,0.35)';
     ctx.font = '600 13px Fredoka';
     ctx.fillText(r.label, r.x + 10, r.y + 18);
+  }
+
+  function drawWalls() {
+    ctx.save();
+    walls.forEach(w => {
+      ctx.fillStyle = getCss('--plum');
+      ctx.fillRect(w.x, w.y, w.w, w.h);
+      ctx.fillStyle = 'rgba(255,255,255,0.18)';
+      ctx.fillRect(w.x, w.y, w.w, Math.min(4, w.h));
+    });
+    ctx.restore();
   }
 
   function drawRug() {
     ctx.save();
     ctx.fillStyle = getCss('--rug');
     ctx.beginPath();
-    ctx.ellipse(650, 190, 130, 78, 0, 0, Math.PI*2);
+    ctx.ellipse(650, 190, 120, 74, 0, 0, Math.PI*2);
     ctx.fill();
     ctx.strokeStyle = getCss('--rug-dark');
     ctx.lineWidth = 4;
     ctx.beginPath();
-    ctx.ellipse(650, 190, 108, 60, 0, 0, Math.PI*2);
+    ctx.ellipse(650, 190, 98, 56, 0, 0, Math.PI*2);
+    ctx.stroke();
+    ctx.restore();
+
+    // small playroom mat
+    ctx.save();
+    ctx.fillStyle = '#FFE1B0';
+    ctx.beginPath();
+    ctx.ellipse(560, 480, 90, 54, 0, 0, Math.PI*2);
+    ctx.fill();
+    ctx.strokeStyle = '#F0C97C';
+    ctx.lineWidth = 3;
+    ctx.beginPath();
+    ctx.ellipse(560, 480, 72, 40, 0, 0, Math.PI*2);
     ctx.stroke();
     ctx.restore();
   }
@@ -1037,6 +1437,111 @@
     ctx.strokeRect(table.x, table.y, table.w, table.h);
   }
 
+  function drawToyBox() {
+    drawShadow(toyBox.x + toyBox.w/2, toyBox.y + toyBox.h + 4, toyBox.w*0.5, 8);
+    ctx.save();
+    ctx.fillStyle = '#B9A6DC';
+    ctx.fillRect(toyBox.x, toyBox.y + 14, toyBox.w, toyBox.h - 14);
+    ctx.strokeStyle = '#8B6FB0';
+    ctx.lineWidth = 3;
+    ctx.strokeRect(toyBox.x, toyBox.y + 14, toyBox.w, toyBox.h - 14);
+    const openAmt = toyBox.openT > 0 ? Math.min(1, toyBox.openT) : 0;
+    ctx.save();
+    ctx.translate(toyBox.x, toyBox.y + 14);
+    ctx.rotate(-openAmt * 0.9);
+    ctx.fillStyle = '#9AD1D4';
+    ctx.fillRect(0, -14, toyBox.w, 14);
+    ctx.strokeStyle = '#6FAEB2';
+    ctx.strokeRect(0, -14, toyBox.w, 14);
+    ctx.restore();
+    ctx.restore();
+  }
+
+  function drawBlockTower() {
+    drawShadow(blockTower.x + blockTower.w/2, blockTower.y + blockTower.h + 4, blockTower.w*0.6, 8);
+    const cols = ['#F2A6B0','#9AD1D4','#F4D06F','#8FD9B6'];
+    const scattered = blockTower.hitT > 0;
+    ctx.save();
+    for (let i = 0; i < 4; i++) {
+      ctx.fillStyle = cols[i % cols.length];
+      let bx = blockTower.x, by = blockTower.y + blockTower.h - (i+1)*20;
+      let rot = 0;
+      if (scattered) {
+        bx += (i - 1.5) * 14;
+        by = blockTower.y + blockTower.h - 10 + (i%2)*4;
+        rot = (i - 1.5) * 0.3;
+      }
+      ctx.save();
+      ctx.translate(bx + blockTower.w/2, by + 10);
+      ctx.rotate(rot);
+      ctx.fillRect(-blockTower.w/2, -10, blockTower.w, 18);
+      ctx.strokeStyle = 'rgba(74,59,82,0.3)';
+      ctx.lineWidth = 2;
+      ctx.strokeRect(-blockTower.w/2, -10, blockTower.w, 18);
+      ctx.restore();
+    }
+    ctx.restore();
+  }
+
+  function drawBall() {
+    drawShadow(ball.x, ball.y + ball.r*0.8, ball.r*0.9, ball.r*0.3);
+    ctx.save();
+    ctx.translate(ball.x, ball.y);
+    ctx.fillStyle = '#FF9C7A';
+    ctx.beginPath();
+    ctx.arc(0, 0, ball.r, 0, Math.PI*2);
+    ctx.fill();
+    ctx.strokeStyle = '#4A3B52';
+    ctx.lineWidth = 1.5;
+    for (let i = 0; i < 3; i++) {
+      ctx.beginPath();
+      ctx.moveTo(0, 0);
+      const a = (i / 3) * Math.PI * 2;
+      ctx.lineTo(Math.cos(a)*ball.r, Math.sin(a)*ball.r);
+      ctx.stroke();
+    }
+    ctx.beginPath();
+    ctx.arc(0, 0, ball.r, 0, Math.PI*2);
+    ctx.stroke();
+    ctx.restore();
+  }
+
+  function drawTeddy() {
+    const x = teddy.x, y = teddy.y;
+    ctx.save();
+    ctx.fillStyle = '#B08A57';
+    ctx.beginPath(); ctx.arc(x - 12, y - 24, 7, 0, Math.PI*2); ctx.fill();
+    ctx.beginPath(); ctx.arc(x + 12, y - 24, 7, 0, Math.PI*2); ctx.fill();
+    ctx.beginPath(); ctx.arc(x, y - 12, 16, 0, Math.PI*2); ctx.fill();
+    ctx.beginPath(); ctx.ellipse(x, y + 12, 18, 16, 0, 0, Math.PI*2); ctx.fill();
+    ctx.fillStyle = '#4A3B52';
+    ctx.beginPath(); ctx.arc(x - 5, y - 13, 1.6, 0, Math.PI*2); ctx.fill();
+    ctx.beginPath(); ctx.arc(x + 5, y - 13, 1.6, 0, Math.PI*2); ctx.fill();
+    ctx.fillStyle = '#8B6A42';
+    ctx.beginPath(); ctx.arc(x, y - 8, 3, 0, Math.PI*2); ctx.fill();
+    ctx.restore();
+  }
+
+  function drawBookshelf() {
+    ctx.save();
+    ctx.fillStyle = '#B08A57';
+    ctx.fillRect(bookshelf.x, bookshelf.y, bookshelf.w, bookshelf.h);
+    ctx.strokeStyle = '#8B6A42';
+    ctx.lineWidth = 2;
+    ctx.strokeRect(bookshelf.x, bookshelf.y, bookshelf.w, bookshelf.h);
+    const cols = ['#F2A6B0','#9AD1D4','#F4D06F','#8FD9B6','#B9A6DC'];
+    for (let shelf = 0; shelf < 4; shelf++) {
+      const sy = bookshelf.y + 10 + shelf * 58;
+      ctx.strokeStyle = '#8B6A42';
+      ctx.beginPath(); ctx.moveTo(bookshelf.x, sy); ctx.lineTo(bookshelf.x + bookshelf.w, sy); ctx.stroke();
+      for (let b = 0; b < 3; b++) {
+        ctx.fillStyle = cols[(shelf*3 + b) % cols.length];
+        ctx.fillRect(bookshelf.x + 2 + b*6, sy - 14, 5, 14);
+      }
+    }
+    ctx.restore();
+  }
+
   function drawDog(dog) {
     drawShadow(dog.x, dog.y + dog.r*0.75 + 4, dog.r*0.9, dog.r*0.3);
     ctx.save();
@@ -1080,7 +1585,6 @@
     const bounce = cat.hiss > 0 ? Math.sin(cat.hiss * 50) * 3 : 0;
     ctx.translate(cat.x, cat.y + bounce);
 
-    // tail (flicks gently when idle)
     const tailWag = Math.sin(cat.tailT * 2.2) * 0.35;
     ctx.strokeStyle = getCss('--steven');
     ctx.lineWidth = 5;
@@ -1090,13 +1594,11 @@
     ctx.quadraticCurveTo(-cat.r*1.7, -cat.r*0.4 + tailWag*10, -cat.r*1.5, -cat.r*1.3 + tailWag*6);
     ctx.stroke();
 
-    // body
     ctx.fillStyle = getCss('--steven');
     ctx.beginPath();
     ctx.ellipse(0, 0, cat.r, cat.r*0.7, 0, 0, Math.PI*2);
     ctx.fill();
 
-    // stripes
     ctx.strokeStyle = getCss('--steven-dark');
     ctx.lineWidth = 3;
     for (let i = -1; i <= 1; i++) {
@@ -1106,13 +1608,11 @@
       ctx.stroke();
     }
 
-    // head
     ctx.fillStyle = getCss('--steven');
     ctx.beginPath();
     ctx.arc(cat.r*0.7, -cat.r*0.35, cat.r*0.55, 0, Math.PI*2);
     ctx.fill();
 
-    // ears
     ctx.beginPath();
     ctx.moveTo(cat.r*0.35, -cat.r*0.7);
     ctx.lineTo(cat.r*0.5, -cat.r*1.25);
@@ -1126,16 +1626,13 @@
     ctx.closePath();
     ctx.fill();
 
-    // face
     ctx.fillStyle = '#4A3B52';
     if (cat.mood > 0) {
-      // happy closed eyes ^ ^
       ctx.lineWidth = 2;
       ctx.strokeStyle = '#4A3B52';
       ctx.beginPath(); ctx.arc(cat.r*0.55, -cat.r*0.4, 3, Math.PI, Math.PI*2); ctx.stroke();
       ctx.beginPath(); ctx.arc(cat.r*0.9, -cat.r*0.4, 3, Math.PI, Math.PI*2); ctx.stroke();
     } else if (cat.hiss > 0) {
-      // angry eyes
       ctx.beginPath(); ctx.moveTo(cat.r*0.45,-cat.r*0.55); ctx.lineTo(cat.r*0.65,-cat.r*0.4); ctx.lineWidth=2; ctx.strokeStyle='#4A3B52'; ctx.stroke();
       ctx.beginPath(); ctx.moveTo(cat.r*1.0,-cat.r*0.55); ctx.lineTo(cat.r*0.8,-cat.r*0.4); ctx.stroke();
     } else {
@@ -1194,15 +1691,54 @@
     ctx.textAlign = 'left';
   }
 
+  function drawAnthony() {
+    if (!anthony) return;
+    drawShadow(anthony.x, anthony.y + 28, 18, 7);
+    ctx.save();
+    let wobble = 0;
+    if (anthony.dizzy > 0) wobble = Math.sin(performance.now()/60) * 6;
+    ctx.translate(anthony.x + wobble, anthony.y);
+    ctx.fillStyle = getCss('--anthony');
+    ctx.beginPath();
+    ctx.ellipse(0, 8, 17, 26, 0, 0, Math.PI*2);
+    ctx.fill();
+    ctx.fillStyle = '#F3C9A0';
+    ctx.beginPath();
+    ctx.arc(0, -22, 14, 0, Math.PI*2);
+    ctx.fill();
+    ctx.fillStyle = getCss('--anthony-dark');
+    ctx.beginPath();
+    ctx.arc(0, -30, 12, Math.PI, 0);
+    ctx.fill();
+    // sunglasses
+    ctx.fillStyle = '#2A2230';
+    ctx.fillRect(-11, -24, 8, 5);
+    ctx.fillRect(3, -24, 8, 5);
+    ctx.fillRect(-3, -23, 6, 2);
+    if (anthony.dizzy > 0) {
+      ctx.fillStyle = '#8B5FBF';
+      ctx.font = '16px Fredoka';
+      const spin = performance.now()/150;
+      for (let i = 0; i < 3; i++) {
+        const a = spin + i*(Math.PI*2/3);
+        ctx.fillText('✦', Math.cos(a)*18, -40 + Math.sin(a)*6);
+      }
+    }
+    ctx.restore();
+    ctx.fillStyle = '#4A3B52';
+    ctx.font = '700 11px Fredoka';
+    ctx.textAlign = 'center';
+    ctx.fillText('Anthony', anthony.x, anthony.y + 38);
+    ctx.textAlign = 'left';
+  }
+
   function drawPlayer() {
     drawShadow(player.x + player.w/2, player.y + player.h + 6, 16, 5);
     ctx.save();
     const bounce = (keys['arrowleft']||keys['arrowright']||keys['arrowup']||keys['arrowdown']||keys['w']||keys['a']||keys['s']||keys['d']) ? Math.sin(player.bob) * 3 : 0;
     const cx = player.x + player.w/2, cy = player.y + player.h/2 + bounce;
 
-    if (player.caught) {
-      ctx.globalAlpha = 0.6;
-    }
+    if (player.caught) ctx.globalAlpha = 0.6;
 
     ctx.fillStyle = getCss('--arlo-dark');
     ctx.fillRect(cx - 10, cy + 8, 8, 12);
@@ -1310,16 +1846,32 @@
     ctx.restore();
   }
 
+  function drawAnthonyWarning() {
+    if (!anthony || gameOver) return;
+    const pulse = 0.12 + Math.sin(performance.now()/150) * 0.07;
+    ctx.save();
+    ctx.strokeStyle = `rgba(179,63,63,${pulse})`;
+    ctx.lineWidth = 16;
+    ctx.strokeRect(8, 8, W-16, H-16);
+    ctx.restore();
+  }
+
   function draw() {
     ctx.clearRect(0, 0, W, H);
     Object.values(rooms).forEach(drawRoom);
     drawRug();
     drawFloorPlanks();
+    drawWalls();
+    drawBookshelf();
     drawTable();
     drawFoodBowl();
     drawCabinet();
     drawWaterBowl();
     drawLaundry();
+    drawToyBox();
+    drawBlockTower();
+    drawTeddy();
+    drawBall();
 
     dogs.forEach(drawDog);
     drawCat();
@@ -1327,18 +1879,22 @@
     screamRings.forEach(drawScreamRing);
 
     const actors = [{type:'player'}, ...parents.map(p => ({type:'parent', p}))];
+    if (anthony) actors.push({ type: 'anthony' });
     actors.sort((a,b) => {
-      const ay = a.type === 'player' ? player.y : a.p.y;
-      const by = b.type === 'player' ? player.y : b.p.y;
+      const ay = a.type === 'player' ? player.y : (a.type === 'anthony' ? anthony.y : a.p.y);
+      const by = b.type === 'player' ? player.y : (b.type === 'anthony' ? anthony.y : b.p.y);
       return ay - by;
     });
     actors.forEach(a => {
-      if (a.type === 'player') drawPlayer(); else drawParent(a.p);
+      if (a.type === 'player') drawPlayer();
+      else if (a.type === 'anthony') drawAnthony();
+      else drawParent(a.p);
     });
 
     particles.forEach(drawParticle);
     flyingCoins.forEach(drawFlyingCoin);
     toasts.forEach(drawToast);
+    drawAnthonyWarning();
   }
 
   function loop(now) {
@@ -1349,8 +1905,6 @@
     rafId = requestAnimationFrame(loop);
   }
 
-  // Draw the very first frame immediately so mobile users see the scene
-  // before pressing "Let's go" (avoids a blank canvas flash).
   draw();
 })();
 </script>
