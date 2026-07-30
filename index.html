@@ -1,0 +1,876 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Arlo's Chaos Hour</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Fredoka:wght@400;500;600;700&display=swap');
+
+  :root {
+    --wall: #FFF3D6;
+    --floor: #BFE3F0;
+    --rug: #8FD9B6;
+    --arlo: #FF6F59;
+    --arlo-dark: #E0563F;
+    --plum: #4A3B52;
+    --coin: #FFC94A;
+    --white: #FFFDF8;
+    --wood: #C9A06B;
+  }
+
+  * { box-sizing: border-box; }
+
+  body {
+    margin: 0;
+    min-height: 100vh;
+    background: linear-gradient(180deg, #FFE9B8 0%, #FFDCA8 100%);
+    font-family: 'Fredoka', sans-serif;
+    color: var(--plum);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 20px 12px 40px;
+  }
+
+  h1 {
+    font-size: 2.1rem;
+    font-weight: 700;
+    margin: 4px 0 2px;
+    letter-spacing: -0.5px;
+  }
+  h1 span { color: var(--arlo-dark); }
+
+  .subtitle {
+    font-size: 0.95rem;
+    font-weight: 500;
+    color: #7A6A82;
+    margin-bottom: 14px;
+  }
+
+  .hud {
+    display: flex;
+    gap: 14px;
+    align-items: center;
+    margin-bottom: 10px;
+    flex-wrap: wrap;
+    justify-content: center;
+  }
+
+  .pill {
+    background: var(--white);
+    border: 3px solid var(--plum);
+    border-radius: 999px;
+    padding: 8px 18px;
+    font-weight: 600;
+    font-size: 1.05rem;
+    box-shadow: 3px 3px 0 var(--plum);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .scream-meter {
+    width: 90px;
+    height: 14px;
+    background: #eee;
+    border: 2px solid var(--plum);
+    border-radius: 999px;
+    overflow: hidden;
+  }
+  .scream-fill {
+    height: 100%;
+    background: linear-gradient(90deg, #FF9C7A, var(--arlo-dark));
+    width: 100%;
+    transition: width 0.1s linear;
+  }
+
+  #gameCanvas {
+    background: var(--floor);
+    border: 5px solid var(--plum);
+    border-radius: 18px;
+    box-shadow: 6px 6px 0 var(--plum);
+    max-width: 100%;
+    touch-action: none;
+  }
+
+  .controls-note {
+    margin-top: 12px;
+    font-size: 0.85rem;
+    color: #7A6A82;
+    text-align: center;
+    max-width: 620px;
+    line-height: 1.5;
+  }
+  .controls-note b { color: var(--plum); }
+
+  .wrap { position: relative; }
+
+  .overlay {
+    position: absolute;
+    inset: 0;
+    background: rgba(74,59,82,0.88);
+    border-radius: 14px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    color: var(--white);
+    text-align: center;
+    padding: 20px;
+  }
+  .overlay h2 { font-size: 1.6rem; margin-bottom: 8px; }
+  .overlay p { font-size: 0.95rem; max-width: 380px; line-height: 1.6; margin: 4px 0; }
+  .overlay button {
+    margin-top: 16px;
+    font-family: 'Fredoka', sans-serif;
+    font-weight: 700;
+    font-size: 1.1rem;
+    background: var(--arlo);
+    color: white;
+    border: 3px solid var(--plum);
+    border-radius: 999px;
+    padding: 10px 28px;
+    cursor: pointer;
+    box-shadow: 3px 3px 0 var(--wall);
+  }
+  .overlay button:active { transform: translate(2px,2px); box-shadow: none; }
+
+  .mobile-controls {
+    display: none;
+    margin-top: 14px;
+    gap: 10px;
+    flex-wrap: wrap;
+    justify-content: center;
+  }
+  .mobile-controls button {
+    font-family: 'Fredoka', sans-serif;
+    font-weight: 700;
+    font-size: 1rem;
+    background: var(--white);
+    border: 3px solid var(--plum);
+    border-radius: 12px;
+    padding: 10px 16px;
+    box-shadow: 3px 3px 0 var(--plum);
+    color: var(--plum);
+  }
+  @media (max-width: 720px) {
+    .mobile-controls { display: flex; }
+  }
+</style>
+</head>
+<body>
+
+<h1><span>Arlo's</span> Chaos Hour</h1>
+<div class="subtitle">tiny human. maximum mischief.</div>
+
+<div class="hud">
+  <div class="pill">🪙 <span id="coinCount">0</span></div>
+  <div class="pill">😱 Scream <div class="scream-meter"><div class="scream-fill" id="screamFill"></div></div></div>
+</div>
+
+<div class="wrap">
+  <canvas id="gameCanvas" width="900" height="580"></canvas>
+  <div class="overlay" id="startOverlay">
+    <h2>Naptime is a lie. It's Chaos Hour.</h2>
+    <p>Move Arlo around the house with <b>arrow keys / WASD</b>.</p>
+    <p>Pull the dogs' tails, raid the cabinet, splash the water bowl, wreck the laundry, and fling some food — everything drops a coin.</p>
+    <p>When Mom or Dad get close, hit <b>SPACE</b> to unleash Arlo's superpower scream and send them dizzy!</p>
+    <button id="startBtn">Let's go, Arlo</button>
+  </div>
+</div>
+
+<div class="controls-note">
+  <b>Move:</b> Arrow keys or WASD &nbsp;•&nbsp; <b>Scream:</b> Spacebar &nbsp;•&nbsp;
+  Meet <b>Maggie</b>, <b>Albus</b>, and <b>Bean</b> — pull a tail, get a coin. Nothing in this house is safe.
+</div>
+
+<div class="mobile-controls">
+  <button id="btnUp">↑</button>
+  <button id="btnLeft">←</button>
+  <button id="btnDown">↓</button>
+  <button id="btnRight">→</button>
+  <button id="btnScream">😱 SCREAM</button>
+</div>
+
+<script>
+(function() {
+  const canvas = document.getElementById('gameCanvas');
+  const ctx = canvas.getContext('2d');
+  const W = canvas.width, H = canvas.height;
+  const coinCountEl = document.getElementById('coinCount');
+  const screamFillEl = document.getElementById('screamFill');
+  const startOverlay = document.getElementById('startOverlay');
+  const startBtn = document.getElementById('startBtn');
+
+  let started = false;
+  let coins = 0;
+  let lastTime = 0;
+
+  // ---------- Input ----------
+  const keys = {};
+  window.addEventListener('keydown', e => {
+    if (['ArrowUp','ArrowDown','ArrowLeft','ArrowRight',' '].includes(e.key)) e.preventDefault();
+    keys[e.key.toLowerCase()] = true;
+    if (e.key === ' ') tryScream();
+  });
+  window.addEventListener('keyup', e => { keys[e.key.toLowerCase()] = false; });
+
+  function bindHold(id, key) {
+    const el = document.getElementById(id);
+    if (!el) return;
+    const down = ev => { ev.preventDefault(); keys[key] = true; };
+    const up = ev => { ev.preventDefault(); keys[key] = false; };
+    el.addEventListener('touchstart', down);
+    el.addEventListener('touchend', up);
+    el.addEventListener('mousedown', down);
+    el.addEventListener('mouseup', up);
+    el.addEventListener('mouseleave', up);
+  }
+  bindHold('btnUp', 'arrowup');
+  bindHold('btnDown', 'arrowdown');
+  bindHold('btnLeft', 'arrowleft');
+  bindHold('btnRight', 'arrowright');
+  document.getElementById('btnScream').addEventListener('touchstart', e => { e.preventDefault(); tryScream(); });
+  document.getElementById('btnScream').addEventListener('click', () => tryScream());
+
+  startBtn.addEventListener('click', () => {
+    started = true;
+    startOverlay.style.display = 'none';
+    lastTime = performance.now();
+    requestAnimationFrame(loop);
+  });
+
+  // ---------- World ----------
+  const rooms = {
+    kitchen:  { x: 20,  y: 20,  w: 400, h: 280, color: '#FDEBC8', label: 'Kitchen' },
+    living:   { x: 440, y: 20,  w: 440, h: 280, color: '#EAF7F0', label: 'Living Room' },
+    play:     { x: 20,  y: 320, w: 860, h: 240, color: '#D9F0FA', label: 'Playroom' }
+  };
+
+  // ---------- Player: Arlo ----------
+  const player = {
+    x: 450, y: 450, w: 34, h: 40,
+    speed: 190,
+    dir: 'down',
+    caught: false,
+    caughtTimer: 0,
+    screamCooldown: 0,
+    screamMax: 3.5,
+    bob: 0
+  };
+
+  // ---------- Dogs ----------
+  const dogs = [
+    { name: 'Maggie', color: '#C98A4B', x: 150, y: 150, r: 16, vx: 0, vy: 0, wanderT: 0, cooldown: 0, flee: 0, yelp: 0 },
+    { name: 'Albus',  color: '#EDEDED', x: 650, y: 120, r: 15, vx: 0, vy: 0, wanderT: 0, cooldown: 0, flee: 0, yelp: 0 },
+    { name: 'Bean',   color: '#5A4632', x: 300, y: 420, r: 14, vx: 0, vy: 0, wanderT: 0, cooldown: 0, flee: 0, yelp: 0 }
+  ];
+
+  // ---------- Parents ----------
+  const parents = [
+    { name: 'Mom', color: '#D46A8F', x: 700, y: 450, speed: 130, state: 'wander', wanderT: 0, dizzy: 0, chaseGrace: 0, vx:0, vy:0 },
+    { name: 'Dad', color: '#4E7FB5', x: 100, y: 480, speed: 135, state: 'wander', wanderT: 0, dizzy: 0, chaseGrace: 0, vx:0, vy:0 }
+  ];
+
+  // ---------- Interactables ----------
+  const cabinet = { x: 60, y: 40, w: 110, h: 70, cooldown: 0, openT: 0 };
+  const waterBowl = { x: 130, y: 250, r: 26, cooldown: 0, splashT: 0 };
+  const laundry = { x: 150, y: 400, w: 70, h: 55, cooldown: 0, messT: 0 };
+  const foodBowl = { x: 330, y: 90, r: 20, cooldown: 0, throwT: 0 };
+  const table = { x: 300, y: 150, w: 110, h: 60 };
+
+  // ---------- Particles / effects ----------
+  let particles = [];
+  let flyingCoins = [];
+  let toasts = [];
+  let screamRings = [];
+
+  function spawnParticle(p) { particles.push(Object.assign({ life: 1, maxLife: 1, rot: 0, rotSpeed: 0, gravity: 0 }, p)); }
+
+  function spawnCoin(fromX, fromY) {
+    flyingCoins.push({ x: fromX, y: fromY, t: 0, dur: 0.5, sx: fromX, sy: fromY });
+  }
+
+  function toast(text, x, y, color) {
+    toasts.push({ text, x, y, life: 1.2, maxLife: 1.2, color: color || '#4A3B52' });
+  }
+
+  function dist(x1,y1,x2,y2){ return Math.hypot(x1-x2, y1-y2); }
+
+  // ---------- Scream ----------
+  function tryScream() {
+    if (!started) return;
+    if (player.screamCooldown > 0) return;
+    player.screamCooldown = player.screamMax;
+    const cx = player.x + player.w/2, cy = player.y + player.h/2;
+    screamRings.push({ x: cx, y: cy, r: 0, maxR: 340, hit: new Set() });
+    toast('AAAAAH!', cx, player.y - 10, '#E0563F');
+  }
+
+  // ---------- Update ----------
+  function update(dt) {
+    // Player movement
+    let mvx = 0, mvy = 0;
+    if (!player.caught) {
+      if (keys['arrowleft'] || keys['a']) { mvx -= 1; player.dir = 'left'; }
+      if (keys['arrowright'] || keys['d']) { mvx += 1; player.dir = 'right'; }
+      if (keys['arrowup'] || keys['w']) { mvy -= 1; player.dir = 'up'; }
+      if (keys['arrowdown'] || keys['s']) { mvy += 1; player.dir = 'down'; }
+    }
+    const len = Math.hypot(mvx, mvy) || 1;
+    if (mvx || mvy) player.bob += dt * 10;
+    player.x += (mvx/len) * player.speed * dt;
+    player.y += (mvy/len) * player.speed * dt;
+    player.x = Math.max(10, Math.min(W - player.w - 10, player.x));
+    player.y = Math.max(10, Math.min(H - player.h - 10, player.y));
+
+    if (player.screamCooldown > 0) player.screamCooldown -= dt;
+    screamFillEl.style.width = (100 * (1 - Math.max(0, player.screamCooldown) / player.screamMax)) + '%';
+
+    if (player.caughtTimer > 0) {
+      player.caughtTimer -= dt;
+      if (player.caughtTimer <= 0) player.caught = false;
+    }
+
+    // Scream rings
+    screamRings.forEach(ring => {
+      ring.r += dt * 700;
+    });
+    screamRings = screamRings.filter(r => r.r < r.maxR);
+
+    // Dogs
+    dogs.forEach(dog => {
+      if (dog.cooldown > 0) dog.cooldown -= dt;
+      if (dog.yelp > 0) dog.yelp -= dt;
+
+      if (dog.flee > 0) {
+        dog.flee -= dt;
+        dog.x += dog.vx * dt;
+        dog.y += dog.vy * dt;
+      } else {
+        dog.wanderT -= dt;
+        if (dog.wanderT <= 0) {
+          const ang = Math.random() * Math.PI * 2;
+          dog.vx = Math.cos(ang) * 40;
+          dog.vy = Math.sin(ang) * 40;
+          dog.wanderT = 1 + Math.random() * 2;
+        }
+        dog.x += dog.vx * dt;
+        dog.y += dog.vy * dt;
+      }
+      dog.x = Math.max(30, Math.min(W - 30, dog.x));
+      dog.y = Math.max(30, Math.min(H - 30, dog.y));
+
+      // Tail pull check
+      const pcx = player.x + player.w/2, pcy = player.y + player.h/2;
+      if (dog.cooldown <= 0 && dist(pcx, pcy, dog.x, dog.y) < dog.r + 22) {
+        dog.cooldown = 4;
+        dog.yelp = 0.8;
+        dog.flee = 0.6;
+        const ang = Math.atan2(dog.y - pcy, dog.x - pcx);
+        dog.vx = Math.cos(ang) * 160;
+        dog.vy = Math.sin(ang) * 160;
+        coins += 1;
+        coinCountEl.textContent = coins;
+        spawnCoin(dog.x, dog.y - 10);
+        toast('Pulled ' + dog.name + "'s tail!", dog.x, dog.y - 30, '#C98A4B');
+      }
+    });
+
+    // Parents
+    parents.forEach(par => {
+      if (par.dizzy > 0) {
+        par.dizzy -= dt;
+      } else {
+        // check scream hit
+        screamRings.forEach(ring => {
+          const d = dist(ring.x, ring.y, par.x, par.y);
+          if (!ring.hit.has(par) && Math.abs(d - ring.r) < 26) {
+            ring.hit.add(par);
+            par.dizzy = 3;
+            par.state = 'wander';
+            par.chaseGrace = 1.5;
+            toast(par.name + ' got dizzy!', par.x, par.y - 30, '#8B5FBF');
+          }
+        });
+      }
+
+      if (par.dizzy <= 0) {
+        if (par.chaseGrace > 0) par.chaseGrace -= dt;
+        const pcx = player.x + player.w/2, pcy = player.y + player.h/2;
+        const d = dist(pcx, pcy, par.x, par.y);
+
+        if (par.chaseGrace <= 0 && d < 190 && !player.caught) {
+          par.state = 'chase';
+        } else if (d > 260) {
+          par.state = 'wander';
+        }
+
+        if (par.state === 'chase') {
+          const ang = Math.atan2(pcy - par.y, pcx - par.x);
+          par.x += Math.cos(ang) * par.speed * dt;
+          par.y += Math.sin(ang) * par.speed * dt;
+
+          if (d < 26 && !player.caught) {
+            player.caught = true;
+            player.caughtTimer = 1.4;
+            coins = Math.max(0, coins - 1);
+            coinCountEl.textContent = coins;
+            par.chaseGrace = 2;
+            toast(par.name + ': Gotcha!', par.x, par.y - 30, '#D46A8F');
+          }
+        } else {
+          par.wanderT -= dt;
+          if (par.wanderT <= 0) {
+            const ang = Math.random() * Math.PI * 2;
+            par.vx = Math.cos(ang) * 50;
+            par.vy = Math.sin(ang) * 50;
+            par.wanderT = 1.2 + Math.random() * 2;
+          }
+          par.x += par.vx * dt;
+          par.y += par.vy * dt;
+        }
+      }
+      par.x = Math.max(30, Math.min(W - 30, par.x));
+      par.y = Math.max(30, Math.min(H - 30, par.y));
+    });
+
+    // Cabinet
+    if (cabinet.cooldown > 0) cabinet.cooldown -= dt;
+    if (cabinet.openT > 0) cabinet.openT -= dt;
+    if (cabinet.cooldown <= 0 && rectHit(player, cabinet)) {
+      cabinet.cooldown = 6;
+      cabinet.openT = 1.6;
+      for (let i = 0; i < 5; i++) {
+        spawnParticle({
+          x: cabinet.x + cabinet.w/2, y: cabinet.y + cabinet.h,
+          vx: (Math.random()-0.5) * 160, vy: -60 - Math.random()*80,
+          gravity: 420, size: 10 + Math.random()*6,
+          color: ['#B0B7BD','#8C949B','#D5DADD'][i%3],
+          shape: 'pan', maxLife: 1.4, life: 1.4,
+          rot: Math.random()*Math.PI, rotSpeed: (Math.random()-0.5)*8
+        });
+      }
+      coins += 1; coinCountEl.textContent = coins;
+      spawnCoin(cabinet.x + cabinet.w/2, cabinet.y + cabinet.h);
+      toast('CLANG! CLANG!', cabinet.x + cabinet.w/2, cabinet.y - 10, '#8C949B');
+    }
+
+    // Water bowl
+    if (waterBowl.cooldown > 0) waterBowl.cooldown -= dt;
+    if (waterBowl.splashT > 0) waterBowl.splashT -= dt;
+    if (waterBowl.cooldown <= 0 && dist(player.x+player.w/2, player.y+player.h/2, waterBowl.x, waterBowl.y) < waterBowl.r + 22) {
+      waterBowl.cooldown = 4;
+      waterBowl.splashT = 0.8;
+      for (let i = 0; i < 8; i++) {
+        const ang = Math.random()*Math.PI*2;
+        spawnParticle({
+          x: waterBowl.x, y: waterBowl.y,
+          vx: Math.cos(ang)*90, vy: Math.sin(ang)*90 - 60,
+          gravity: 300, size: 5+Math.random()*3, color: '#5FB6DE',
+          shape: 'drop', maxLife: 0.7, life: 0.7
+        });
+      }
+      coins += 1; coinCountEl.textContent = coins;
+      spawnCoin(waterBowl.x, waterBowl.y);
+      toast('SPLASH!', waterBowl.x, waterBowl.y - 30, '#3E9AC7');
+    }
+
+    // Laundry
+    if (laundry.cooldown > 0) laundry.cooldown -= dt;
+    if (laundry.messT > 0) laundry.messT -= dt;
+    if (laundry.cooldown <= 0 && rectHit(player, laundry)) {
+      laundry.cooldown = 6;
+      laundry.messT = 5;
+      const cols = ['#F2A6B0','#9AD1D4','#F4D06F','#B9A6DC'];
+      for (let i = 0; i < 6; i++) {
+        spawnParticle({
+          x: laundry.x + laundry.w/2, y: laundry.y + laundry.h/2,
+          vx: (Math.random()-0.5)*220, vy: -80-Math.random()*60,
+          gravity: 420, size: 12+Math.random()*6, color: cols[i%cols.length],
+          shape: 'cloth', maxLife: 1.6, life: 1.6,
+          rot: Math.random()*Math.PI, rotSpeed: (Math.random()-0.5)*6
+        });
+      }
+      coins += 1; coinCountEl.textContent = coins;
+      spawnCoin(laundry.x + laundry.w/2, laundry.y);
+      toast('WHEEE! Laundry everywhere!', laundry.x + laundry.w/2, laundry.y - 10, '#B9A6DC');
+    }
+
+    // Food
+    if (foodBowl.cooldown > 0) foodBowl.cooldown -= dt;
+    if (foodBowl.throwT > 0) foodBowl.throwT -= dt;
+    if (foodBowl.cooldown <= 0 && dist(player.x+player.w/2, player.y+player.h/2, foodBowl.x, foodBowl.y) < foodBowl.r + 24) {
+      foodBowl.cooldown = 5;
+      foodBowl.throwT = 0.6;
+      const ang = Math.random()*Math.PI*2;
+      spawnParticle({
+        x: foodBowl.x, y: foodBowl.y,
+        vx: Math.cos(ang)*220, vy: Math.sin(ang)*220 - 100,
+        gravity: 500, size: 9, color: '#E8973F',
+        shape: 'food', maxLife: 1, life: 1
+      });
+      coins += 1; coinCountEl.textContent = coins;
+      spawnCoin(foodBowl.x, foodBowl.y);
+      toast('SPLAT!', foodBowl.x, foodBowl.y - 25, '#E8973F');
+    }
+
+    // Particles
+    particles.forEach(p => {
+      p.vy += (p.gravity||0) * dt;
+      p.x += p.vx * dt;
+      p.y += p.vy * dt;
+      p.rot += (p.rotSpeed||0) * dt;
+      p.life -= dt;
+    });
+    particles = particles.filter(p => p.life > 0);
+
+    // Flying coins
+    flyingCoins.forEach(c => { c.t += dt / c.dur; });
+    flyingCoins.forEach(c => {
+      const tx = player.x + player.w/2, ty = player.y + player.h/2;
+      const tt = Math.min(1, c.t);
+      c.x = c.sx + (tx - c.sx) * tt;
+      c.y = c.sy + (ty - c.sy) * tt - Math.sin(tt*Math.PI) * 40;
+    });
+    flyingCoins = flyingCoins.filter(c => c.t < 1);
+
+    // Toasts
+    toasts.forEach(t => { t.life -= dt; t.y -= dt * 14; });
+    toasts = toasts.filter(t => t.life > 0);
+  }
+
+  function rectHit(a, b) {
+    return a.x < b.x + b.w && a.x + a.w > b.x && a.y < b.y + b.h && a.y + a.h > b.y;
+  }
+
+  // ---------- Draw ----------
+  function drawRoom(r) {
+    ctx.fillStyle = r.color;
+    ctx.fillRect(r.x, r.y, r.w, r.h);
+    ctx.strokeStyle = '#E8D9A8';
+    ctx.lineWidth = 2;
+    ctx.strokeRect(r.x, r.y, r.w, r.h);
+    ctx.fillStyle = 'rgba(74,59,82,0.35)';
+    ctx.font = '600 13px Fredoka';
+    ctx.fillText(r.label, r.x + 10, r.y + 18);
+  }
+
+  function drawCabinet() {
+    ctx.save();
+    ctx.fillStyle = '#C9A06B';
+    ctx.fillRect(cabinet.x, cabinet.y, cabinet.w, cabinet.h);
+    ctx.strokeStyle = '#8B6A42';
+    ctx.lineWidth = 3;
+    ctx.strokeRect(cabinet.x, cabinet.y, cabinet.w, cabinet.h);
+    const openAmt = cabinet.openT > 0 ? Math.min(1, cabinet.openT / 1.6) : 0;
+    // door
+    ctx.save();
+    ctx.translate(cabinet.x + 6, cabinet.y + 6);
+    ctx.rotate(-openAmt * 1.1);
+    ctx.fillStyle = '#DCB77E';
+    ctx.fillRect(0, 0, cabinet.w/2 - 10, cabinet.h - 12);
+    ctx.strokeStyle = '#8B6A42';
+    ctx.strokeRect(0, 0, cabinet.w/2 - 10, cabinet.h - 12);
+    ctx.restore();
+    ctx.save();
+    ctx.translate(cabinet.x + cabinet.w - 6, cabinet.y + 6);
+    ctx.rotate(openAmt * 1.1);
+    ctx.fillStyle = '#DCB77E';
+    ctx.fillRect(-(cabinet.w/2 - 10), 0, cabinet.w/2 - 10, cabinet.h - 12);
+    ctx.strokeStyle = '#8B6A42';
+    ctx.strokeRect(-(cabinet.w/2 - 10), 0, cabinet.w/2 - 10, cabinet.h - 12);
+    ctx.restore();
+    ctx.restore();
+  }
+
+  function drawWaterBowl() {
+    ctx.save();
+    ctx.fillStyle = '#9DB8C4';
+    ctx.beginPath();
+    ctx.ellipse(waterBowl.x, waterBowl.y, waterBowl.r, waterBowl.r*0.6, 0, 0, Math.PI*2);
+    ctx.fill();
+    const level = waterBowl.splashT > 0 ? 0.4 : 0.75;
+    ctx.fillStyle = '#5FB6DE';
+    ctx.beginPath();
+    ctx.ellipse(waterBowl.x, waterBowl.y, waterBowl.r*level, waterBowl.r*0.5*level, 0, 0, Math.PI*2);
+    ctx.fill();
+    ctx.strokeStyle = '#6E8B98';
+    ctx.lineWidth = 3;
+    ctx.beginPath();
+    ctx.ellipse(waterBowl.x, waterBowl.y, waterBowl.r, waterBowl.r*0.6, 0, 0, Math.PI*2);
+    ctx.stroke();
+    ctx.restore();
+  }
+
+  function drawLaundry() {
+    const shrink = laundry.messT > 0 ? 0.35 : 1;
+    ctx.save();
+    ctx.translate(laundry.x + laundry.w/2, laundry.y + laundry.h/2);
+    ctx.scale(shrink, shrink);
+    const cols = ['#F2A6B0','#9AD1D4','#F4D06F'];
+    for (let i = 0; i < 3; i++) {
+      ctx.fillStyle = cols[i];
+      ctx.fillRect(-laundry.w/2 + i*4, -laundry.h/2 + i*8, laundry.w - i*8, 16);
+    }
+    ctx.restore();
+  }
+
+  function drawFoodBowl() {
+    ctx.save();
+    ctx.fillStyle = '#E8D6B0';
+    ctx.beginPath();
+    ctx.arc(foodBowl.x, foodBowl.y, foodBowl.r, 0, Math.PI*2);
+    ctx.fill();
+    ctx.strokeStyle = '#B99B6B';
+    ctx.lineWidth = 3;
+    ctx.stroke();
+    if (foodBowl.throwT <= 0) {
+      ctx.fillStyle = '#E8973F';
+      ctx.beginPath(); ctx.arc(foodBowl.x - 6, foodBowl.y - 3, 6, 0, Math.PI*2); ctx.fill();
+      ctx.fillStyle = '#D9532E';
+      ctx.beginPath(); ctx.arc(foodBowl.x + 6, foodBowl.y + 2, 5, 0, Math.PI*2); ctx.fill();
+    }
+    ctx.restore();
+  }
+
+  function drawTable() {
+    ctx.fillStyle = '#DCB77E';
+    ctx.fillRect(table.x, table.y, table.w, table.h);
+    ctx.strokeStyle = '#B99257';
+    ctx.lineWidth = 3;
+    ctx.strokeRect(table.x, table.y, table.w, table.h);
+  }
+
+  function drawDog(dog) {
+    ctx.save();
+    const bounce = dog.yelp > 0 ? Math.sin(dog.yelp * 40) * 4 : 0;
+    ctx.translate(dog.x, dog.y + bounce);
+    // body
+    ctx.fillStyle = dog.color;
+    ctx.beginPath();
+    ctx.ellipse(0, 0, dog.r, dog.r*0.75, 0, 0, Math.PI*2);
+    ctx.fill();
+    // head
+    ctx.beginPath();
+    ctx.arc(dog.r*0.75, -dog.r*0.3, dog.r*0.55, 0, Math.PI*2);
+    ctx.fill();
+    // ear
+    ctx.fillStyle = 'rgba(0,0,0,0.15)';
+    ctx.beginPath();
+    ctx.ellipse(dog.r*0.9, -dog.r*0.7, 5, 8, 0.4, 0, Math.PI*2);
+    ctx.fill();
+    // tail
+    ctx.strokeStyle = dog.color;
+    ctx.lineWidth = 5;
+    ctx.beginPath();
+    ctx.moveTo(-dog.r*0.9, 0);
+    ctx.quadraticCurveTo(-dog.r*1.6, -dog.r*0.6, -dog.r*1.3, -dog.r*1.2);
+    ctx.stroke();
+    ctx.restore();
+
+    if (dog.yelp > 0) {
+      ctx.fillStyle = 'rgba(74,59,82,0.9)';
+      ctx.font = '600 12px Fredoka';
+      ctx.fillText('yip!', dog.x + 10, dog.y - 22);
+    }
+
+    ctx.fillStyle = '#4A3B52';
+    ctx.font = '600 11px Fredoka';
+    ctx.textAlign = 'center';
+    ctx.fillText(dog.name, dog.x, dog.y + dog.r + 14);
+    ctx.textAlign = 'left';
+  }
+
+  function drawParent(par) {
+    ctx.save();
+    let wobble = 0;
+    if (par.dizzy > 0) wobble = Math.sin(performance.now()/60) * 6;
+    ctx.translate(par.x + wobble, par.y);
+    ctx.fillStyle = par.color;
+    ctx.beginPath();
+    ctx.ellipse(0, 6, 16, 22, 0, 0, Math.PI*2);
+    ctx.fill();
+    ctx.fillStyle = '#F3C9A0';
+    ctx.beginPath();
+    ctx.arc(0, -18, 13, 0, Math.PI*2);
+    ctx.fill();
+    if (par.dizzy > 0) {
+      ctx.fillStyle = '#8B5FBF';
+      ctx.font = '16px Fredoka';
+      const spin = performance.now()/150;
+      for (let i = 0; i < 3; i++) {
+        const a = spin + i*(Math.PI*2/3);
+        ctx.fillText('✦', Math.cos(a)*16, -34 + Math.sin(a)*6);
+      }
+    }
+    ctx.restore();
+    ctx.fillStyle = '#4A3B52';
+    ctx.font = '600 11px Fredoka';
+    ctx.textAlign = 'center';
+    ctx.fillText(par.name, par.x, par.y + 34);
+    ctx.textAlign = 'left';
+  }
+
+  function drawPlayer() {
+    ctx.save();
+    const bounce = (keys['arrowleft']||keys['arrowright']||keys['arrowup']||keys['arrowdown']||keys['w']||keys['a']||keys['s']||keys['d']) ? Math.sin(player.bob) * 3 : 0;
+    const cx = player.x + player.w/2, cy = player.y + player.h/2 + bounce;
+
+    if (player.caught) {
+      ctx.globalAlpha = 0.6;
+    }
+
+    // legs
+    ctx.fillStyle = var_arlo_dark();
+    ctx.fillRect(cx - 10, cy + 8, 8, 12);
+    ctx.fillRect(cx + 2, cy + 8, 8, 12);
+
+    // body
+    ctx.fillStyle = getCss('--arlo');
+    ctx.beginPath();
+    ctx.ellipse(cx, cy, 15, 16, 0, 0, Math.PI*2);
+    ctx.fill();
+
+    // head
+    ctx.fillStyle = '#F6CDA0';
+    ctx.beginPath();
+    ctx.arc(cx, cy - 20, 13, 0, Math.PI*2);
+    ctx.fill();
+
+    // hair
+    ctx.fillStyle = '#6B4A34';
+    ctx.beginPath();
+    ctx.arc(cx, cy - 27, 11, Math.PI, 0);
+    ctx.fill();
+
+    // face direction cue (simple eyes)
+    ctx.fillStyle = '#4A3B52';
+    let ex = 0;
+    if (player.dir === 'left') ex = -4;
+    if (player.dir === 'right') ex = 4;
+    ctx.beginPath();
+    ctx.arc(cx - 4 + ex, cy - 20, 1.6, 0, Math.PI*2);
+    ctx.arc(cx + 4 + ex, cy - 20, 1.6, 0, Math.PI*2);
+    ctx.fill();
+
+    if (player.caughtTimer > 0) {
+      ctx.font = '18px Fredoka';
+      ctx.fillText('😳', cx + 14, cy - 26);
+    }
+
+    ctx.restore();
+    ctx.fillStyle = '#4A3B52';
+    ctx.font = '700 12px Fredoka';
+    ctx.textAlign = 'center';
+    ctx.fillText('Arlo', cx, cy + 36);
+    ctx.textAlign = 'left';
+  }
+
+  function var_arlo_dark() { return getCss('--arlo-dark'); }
+  function getCss(name) { return getComputedStyle(document.documentElement).getPropertyValue(name).trim(); }
+
+  function drawParticle(p) {
+    const alpha = Math.max(0, p.life / p.maxLife);
+    ctx.save();
+    ctx.globalAlpha = alpha;
+    ctx.translate(p.x, p.y);
+    ctx.rotate(p.rot||0);
+    ctx.fillStyle = p.color;
+    if (p.shape === 'pan') {
+      ctx.beginPath();
+      ctx.arc(0, 0, p.size, 0, Math.PI*2);
+      ctx.fill();
+      ctx.strokeStyle = '#6B6F73';
+      ctx.lineWidth = 2;
+      ctx.beginPath(); ctx.moveTo(p.size, 0); ctx.lineTo(p.size + 8, 0); ctx.stroke();
+    } else if (p.shape === 'drop') {
+      ctx.beginPath();
+      ctx.arc(0, 0, p.size, 0, Math.PI*2);
+      ctx.fill();
+    } else if (p.shape === 'cloth') {
+      ctx.fillRect(-p.size/2, -p.size/3, p.size, p.size*0.65);
+    } else if (p.shape === 'food') {
+      ctx.beginPath();
+      ctx.arc(0, 0, p.size, 0, Math.PI*2);
+      ctx.fill();
+    }
+    ctx.restore();
+  }
+
+  function drawFlyingCoin(c) {
+    ctx.save();
+    ctx.translate(c.x, c.y);
+    ctx.fillStyle = '#FFC94A';
+    ctx.beginPath();
+    ctx.arc(0, 0, 8, 0, Math.PI*2);
+    ctx.fill();
+    ctx.strokeStyle = '#C99A2E';
+    ctx.lineWidth = 2;
+    ctx.stroke();
+    ctx.restore();
+  }
+
+  function drawToast(t) {
+    ctx.save();
+    ctx.globalAlpha = Math.max(0, t.life / t.maxLife);
+    ctx.fillStyle = t.color;
+    ctx.font = '700 13px Fredoka';
+    ctx.textAlign = 'center';
+    ctx.fillText(t.text, t.x, t.y);
+    ctx.textAlign = 'left';
+    ctx.restore();
+  }
+
+  function drawScreamRing(ring) {
+    const alpha = Math.max(0, 1 - ring.r / ring.maxR);
+    ctx.save();
+    ctx.strokeStyle = `rgba(224, 86, 63, ${alpha * 0.8})`;
+    ctx.lineWidth = 6;
+    ctx.beginPath();
+    ctx.arc(ring.x, ring.y, ring.r, 0, Math.PI*2);
+    ctx.stroke();
+    ctx.restore();
+  }
+
+  function draw() {
+    ctx.clearRect(0, 0, W, H);
+    Object.values(rooms).forEach(drawRoom);
+    drawTable();
+    drawFoodBowl();
+    drawCabinet();
+    drawWaterBowl();
+    drawLaundry();
+
+    dogs.forEach(drawDog);
+
+    screamRings.forEach(drawScreamRing);
+
+    // draw order by y for depth
+    const actors = [{type:'player'}, ...parents.map(p => ({type:'parent', p}))];
+    actors.sort((a,b) => {
+      const ay = a.type === 'player' ? player.y : a.p.y;
+      const by = b.type === 'player' ? player.y : b.p.y;
+      return ay - by;
+    });
+    actors.forEach(a => {
+      if (a.type === 'player') drawPlayer(); else drawParent(a.p);
+    });
+
+    particles.forEach(drawParticle);
+    flyingCoins.forEach(drawFlyingCoin);
+    toasts.forEach(drawToast);
+  }
+
+  function loop(now) {
+    const dt = Math.min(0.05, (now - lastTime) / 1000);
+    lastTime = now;
+    update(dt);
+    draw();
+    requestAnimationFrame(loop);
+  }
+})();
+</script>
+</body>
+</html>
