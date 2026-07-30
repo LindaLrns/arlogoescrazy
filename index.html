@@ -24,6 +24,10 @@
     --steven-dark: #C97A2E;
     --anthony: #B33F3F;
     --anthony-dark: #8C2E2E;
+    --linda: #6A4C93;
+    --linda-dark: #4E3570;
+    --leighann: #2E7D6B;
+    --leighann-dark: #1F5B4E;
   }
 
   * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
@@ -314,7 +318,7 @@
       <div class="how-row"><span class="ico">🐱</span> Pet Steven the cat — he might purr, or he might not</div>
       <div class="how-row"><span class="ico">🔗</span> Chain interactions quickly for combo bonus coins</div>
       <div class="how-row"><span class="ico">😱</span> Hit SPACE (or the scream button) when Mom or Dad get close to send them dizzy</div>
-      <div class="how-row"><span class="ico">🏃</span> 90 seconds total — brace yourself when Anthony shows up at the 10-second mark</div>
+      <div class="how-row"><span class="ico">🏃</span> 90 seconds total — Anthony joins the chase at 20s, Linda at 40s, and Leighann at 60s</div>
     </div>
     <button id="startBtn">Let's go, Arlo</button>
   </div>
@@ -384,7 +388,15 @@
   const endTitleEl = document.getElementById('endTitle');
 
   const CHAOS_DURATION = 90;
-  const ANTHONY_TRIGGER = 10;
+  const URGENT_TIME_LEFT = 10; // last-seconds timer flash
+
+  // Chasers spawn at a fixed number of seconds *into* the round (elapsed time),
+  // and once spawned they stay active (relentlessly chasing) for the rest of the round.
+  const CHASERS_CONFIG = [
+    { key: 'anthony',  name: 'Anthony',  triggerAt: 20, speed: 172, colorVar: '--anthony',  colorDarkVar: '--anthony-dark' },
+    { key: 'linda',    name: 'Linda',    triggerAt: 40, speed: 178, colorVar: '--linda',    colorDarkVar: '--linda-dark' },
+    { key: 'leighann', name: 'Leighann', triggerAt: 60, speed: 184, colorVar: '--leighann', colorDarkVar: '--leighann-dark' }
+  ];
 
   let started = false;
   let paused = false;
@@ -426,7 +438,7 @@
       masterGain = audioCtx.createGain();
       masterGain.gain.value = audioMuted ? 0 : 1;
       musicGain = audioCtx.createGain();
-      musicGain.gain.value = 0.16;
+      musicGain.gain.value = 0.45;
       sfxGain = audioCtx.createGain();
       sfxGain.gain.value = 0.55;
       musicGain.connect(masterGain);
@@ -515,12 +527,12 @@
   function playMusicStep(step, time) {
     const beat = step % 16;
     if (beat === 0 || beat === 8) {
-      playNote(MUSIC_BASS[Math.floor(step / 16) % MUSIC_BASS.length], time, 0.45, 'triangle', 0.12, musicGain);
+      playNote(MUSIC_BASS[Math.floor(step / 16) % MUSIC_BASS.length], time, 0.45, 'triangle', 0.22, musicGain);
     }
     if (Math.random() < 0.6) {
       const octUp = Math.random() < 0.22;
       const note = MUSIC_SCALE[Math.floor(Math.random() * MUSIC_SCALE.length)] * (octUp ? 2 : 1);
-      playNote(note, time, 0.16, 'sine', 0.07, musicGain);
+      playNote(note, time, 0.16, 'sine', 0.14, musicGain);
     }
   }
 
@@ -552,6 +564,17 @@
     const ctxRef = ensureAudio();
     if (masterGain && ctxRef) masterGain.gain.setTargetAtTime(audioMuted ? 0 : 1, ctxRef.currentTime, 0.05);
   });
+
+  // Some mobile browsers (notably iOS Safari) suspend a freshly created
+  // AudioContext until it sees a direct gesture, and can re-suspend it
+  // after backgrounding. Nudge it awake on the first tap anywhere, and
+  // whenever the game becomes visible/focused again.
+  function resumeAudioIfNeeded() {
+    const ctxRef = ensureAudio();
+    if (ctxRef && ctxRef.state === 'suspended') ctxRef.resume().catch(() => {});
+  }
+  document.addEventListener('pointerdown', resumeAudioIfNeeded, { once: true });
+  document.addEventListener('visibilitychange', () => { if (!document.hidden) resumeAudioIfNeeded(); });
 
   // ================= Input =================
   const keys = {};
@@ -627,7 +650,10 @@
     paused = !paused;
     pauseOverlay.hidden = !paused;
     pauseBtn.textContent = paused ? '▶' : '⏸';
-    if (!paused) lastTime = performance.now();
+    if (!paused) {
+      lastTime = performance.now();
+      resumeAudioIfNeeded();
+    }
   }
   pauseBtn.addEventListener('click', togglePause);
   resumeBtn.addEventListener('click', togglePause);
@@ -739,8 +765,7 @@
     }));
   }
 
-  let anthony = null;
-  let anthonySpawned = false;
+  let chasers = [];
 
   function makeInteractables() {
     return {
@@ -811,7 +836,7 @@
     dogs = makeDogs();
     cat = makeCat();
     parents = makeParents();
-    anthony = null; anthonySpawned = false;
+    chasers = [];
     ({ cabinet, waterBowl, laundry, foodBowl, table, toyBox, blockTower, ball, teddy, bookshelf } = makeInteractables());
     particles = []; flyingCoins = []; toasts = []; screamRings = [];
   }
@@ -821,7 +846,7 @@
     const m = Math.floor(t / 60);
     const s = t % 60;
     timeLeftEl.textContent = m + ':' + String(s).padStart(2, '0');
-    timerPill.classList.toggle('urgent', t <= ANTHONY_TRIGGER && t > 0);
+    timerPill.classList.toggle('urgent', t <= URGENT_TIME_LEFT && t > 0);
   }
   updateTimerDisplay();
 
@@ -835,54 +860,66 @@
     sfx('scream');
   }
 
-  function maybeSpawnAnthony() {
-    if (anthonySpawned || gameOver) return;
-    if (timeLeft <= ANTHONY_TRIGGER) {
-      anthonySpawned = true;
-      const edge = Math.floor(Math.random() * 4);
-      let ax = 450, ay = 300;
-      if (edge === 0) { ax = 40; ay = 340; }
-      else if (edge === 1) { ax = 860; ay = 340; }
-      else if (edge === 2) { ax = 450; ay = 40; }
-      else { ax = 450; ay = 560; }
-      anthony = { x: ax, y: ay, speed: 172, dizzy: 0 };
-      toast("ANTHONY'S HERE — RUN!", player.x, player.y - 50, '#B33F3F');
-      sfx('anthony');
-    }
+  function spawnChaser(cfg) {
+    const edge = Math.floor(Math.random() * 4);
+    let ax = 450, ay = 300;
+    if (edge === 0) { ax = 40; ay = 340; }
+    else if (edge === 1) { ax = 860; ay = 340; }
+    else if (edge === 2) { ax = 450; ay = 40; }
+    else { ax = 450; ay = 560; }
+    const chaser = {
+      key: cfg.key, name: cfg.name, speed: cfg.speed,
+      colorVar: cfg.colorVar, colorDarkVar: cfg.colorDarkVar,
+      x: ax, y: ay, dizzy: 0
+    };
+    chasers.push(chaser);
+    toast(cfg.name.toUpperCase() + " IS HERE — RUN!", player.x, player.y - 50, getCss(cfg.colorVar));
+    sfx('anthony');
   }
 
-  function updateAnthony(dt) {
-    if (!anthony) return;
-    if (anthony.dizzy > 0) {
-      anthony.dizzy -= dt;
-    } else {
-      screamRings.forEach(ring => {
-        const d = dist(ring.x, ring.y, anthony.x, anthony.y);
-        if (!ring.hit.has(anthony) && Math.abs(d - ring.r) < 26) {
-          ring.hit.add(anthony);
-          anthony.dizzy = 1.6;
-          toast('Anthony got dizzy!', anthony.x, anthony.y - 30, '#8B5FBF');
-          sfx('dizzy');
-        }
-      });
-      if (!gameOver) {
-        const pcx = player.x + player.w/2, pcy = player.y + player.h/2;
-        const ang = Math.atan2(pcy - anthony.y, pcx - anthony.x);
-        anthony.x += Math.cos(ang) * anthony.speed * dt;
-        anthony.y += Math.sin(ang) * anthony.speed * dt;
-        const d = dist(pcx, pcy, anthony.x, anthony.y);
-        if (d < 28 && !player.caught) {
-          player.caught = true;
-          player.caughtTimer = 1.6;
-          addCoins(-2, anthony.x, anthony.y);
-          breakCombo();
-          toast('Anthony: not so fast!', anthony.x, anthony.y - 30, '#B33F3F');
-          sfx('catch');
+  function maybeSpawnChasers() {
+    if (gameOver) return;
+    const elapsed = CHAOS_DURATION - timeLeft;
+    CHASERS_CONFIG.forEach(cfg => {
+      if (elapsed >= cfg.triggerAt && !chasers.some(c => c.key === cfg.key)) {
+        spawnChaser(cfg);
+      }
+    });
+  }
+
+  function updateChasers(dt) {
+    chasers.forEach(ch => {
+      if (ch.dizzy > 0) {
+        ch.dizzy -= dt;
+      } else {
+        screamRings.forEach(ring => {
+          const d = dist(ring.x, ring.y, ch.x, ch.y);
+          if (!ring.hit.has(ch) && Math.abs(d - ring.r) < 26) {
+            ring.hit.add(ch);
+            ch.dizzy = 1.6;
+            toast(ch.name + ' got dizzy!', ch.x, ch.y - 30, '#8B5FBF');
+            sfx('dizzy');
+          }
+        });
+        if (!gameOver) {
+          const pcx = player.x + player.w/2, pcy = player.y + player.h/2;
+          const ang = Math.atan2(pcy - ch.y, pcx - ch.x);
+          ch.x += Math.cos(ang) * ch.speed * dt;
+          ch.y += Math.sin(ang) * ch.speed * dt;
+          const d = dist(pcx, pcy, ch.x, ch.y);
+          if (d < 28 && !player.caught) {
+            player.caught = true;
+            player.caughtTimer = 1.6;
+            addCoins(-2, ch.x, ch.y);
+            breakCombo();
+            toast(ch.name + ': not so fast!', ch.x, ch.y - 30, getCss(ch.colorVar));
+            sfx('catch');
+          }
         }
       }
-    }
-    anthony.x = Math.max(30, Math.min(W - 30, anthony.x));
-    anthony.y = Math.max(30, Math.min(H - 30, anthony.y));
+      ch.x = Math.max(30, Math.min(W - 30, ch.x));
+      ch.y = Math.max(30, Math.min(H - 30, ch.y));
+    });
   }
 
   // ================= Update =================
@@ -892,7 +929,7 @@
     if (!gameOver) {
       timeLeft -= dt;
       updateTimerDisplay();
-      maybeSpawnAnthony();
+      maybeSpawnChasers();
       if (timeLeft <= 0) {
         timeLeft = 0;
         updateTimerDisplay();
@@ -972,7 +1009,7 @@
     });
 
     updateCat(dt);
-    updateAnthony(dt);
+    updateChasers(dt);
 
     // Parents
     parents.forEach(par => {
@@ -1691,14 +1728,13 @@
     ctx.textAlign = 'left';
   }
 
-  function drawAnthony() {
-    if (!anthony) return;
-    drawShadow(anthony.x, anthony.y + 28, 18, 7);
+  function drawChaser(ch) {
+    drawShadow(ch.x, ch.y + 28, 18, 7);
     ctx.save();
     let wobble = 0;
-    if (anthony.dizzy > 0) wobble = Math.sin(performance.now()/60) * 6;
-    ctx.translate(anthony.x + wobble, anthony.y);
-    ctx.fillStyle = getCss('--anthony');
+    if (ch.dizzy > 0) wobble = Math.sin(performance.now()/60) * 6;
+    ctx.translate(ch.x + wobble, ch.y);
+    ctx.fillStyle = getCss(ch.colorVar);
     ctx.beginPath();
     ctx.ellipse(0, 8, 17, 26, 0, 0, Math.PI*2);
     ctx.fill();
@@ -1706,16 +1742,16 @@
     ctx.beginPath();
     ctx.arc(0, -22, 14, 0, Math.PI*2);
     ctx.fill();
-    ctx.fillStyle = getCss('--anthony-dark');
+    ctx.fillStyle = getCss(ch.colorDarkVar);
     ctx.beginPath();
     ctx.arc(0, -30, 12, Math.PI, 0);
     ctx.fill();
-    // sunglasses
+    // sunglasses — the universal mark of a relentless chaser
     ctx.fillStyle = '#2A2230';
     ctx.fillRect(-11, -24, 8, 5);
     ctx.fillRect(3, -24, 8, 5);
     ctx.fillRect(-3, -23, 6, 2);
-    if (anthony.dizzy > 0) {
+    if (ch.dizzy > 0) {
       ctx.fillStyle = '#8B5FBF';
       ctx.font = '16px Fredoka';
       const spin = performance.now()/150;
@@ -1728,7 +1764,7 @@
     ctx.fillStyle = '#4A3B52';
     ctx.font = '700 11px Fredoka';
     ctx.textAlign = 'center';
-    ctx.fillText('Anthony', anthony.x, anthony.y + 38);
+    ctx.fillText(ch.name, ch.x, ch.y + 38);
     ctx.textAlign = 'left';
   }
 
@@ -1846,8 +1882,8 @@
     ctx.restore();
   }
 
-  function drawAnthonyWarning() {
-    if (!anthony || gameOver) return;
+  function drawChaserWarning() {
+    if (chasers.length === 0 || gameOver) return;
     const pulse = 0.12 + Math.sin(performance.now()/150) * 0.07;
     ctx.save();
     ctx.strokeStyle = `rgba(179,63,63,${pulse})`;
@@ -1878,23 +1914,26 @@
 
     screamRings.forEach(drawScreamRing);
 
-    const actors = [{type:'player'}, ...parents.map(p => ({type:'parent', p}))];
-    if (anthony) actors.push({ type: 'anthony' });
-    actors.sort((a,b) => {
-      const ay = a.type === 'player' ? player.y : (a.type === 'anthony' ? anthony.y : a.p.y);
-      const by = b.type === 'player' ? player.y : (b.type === 'anthony' ? anthony.y : b.p.y);
+    const actors = [
+      { type: 'player' },
+      ...parents.map(p => ({ type: 'parent', p })),
+      ...chasers.map(c => ({ type: 'chaser', c }))
+    ];
+    actors.sort((a, b) => {
+      const ay = a.type === 'player' ? player.y : (a.type === 'chaser' ? a.c.y : a.p.y);
+      const by = b.type === 'player' ? player.y : (b.type === 'chaser' ? b.c.y : b.p.y);
       return ay - by;
     });
     actors.forEach(a => {
       if (a.type === 'player') drawPlayer();
-      else if (a.type === 'anthony') drawAnthony();
+      else if (a.type === 'chaser') drawChaser(a.c);
       else drawParent(a.p);
     });
 
     particles.forEach(drawParticle);
     flyingCoins.forEach(drawFlyingCoin);
     toasts.forEach(drawToast);
-    drawAnthonyWarning();
+    drawChaserWarning();
   }
 
   function loop(now) {
